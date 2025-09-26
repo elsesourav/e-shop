@@ -1,10 +1,11 @@
-import express from "express";
-import cors from "cors";
-import { errorMiddleware } from "../../../packages/error-handler/error-middleware";
+import { errorMiddleware } from "@packages/error-handler/error-middleware";
 import cookieParser from "cookie-parser";
-import router from "./routes/auth.router";
+import cors from "cors";
+import express from "express";
 import swaggerUi from "swagger-ui-express";
-import swaggerDocument = require("./swagger-output.json");
+import router from "./routes/auth.router";
+
+const swaggerDocument = require("./swagger-output.json");
 
 const app = express();
 
@@ -28,7 +29,7 @@ app.get("/docs-json", (req, res) => {
   res.json(swaggerDocument);
 });
 
-// Routers 
+// Routers
 app.use("/api", router);
 
 app.use(errorMiddleware);
@@ -37,7 +38,6 @@ const port = process.env.PORT || 6001;
 const server = app.listen(port, () => {
   console.log(`Auth service running at http://localhost:${port}/`);
   console.log(`Swagger Docs available at http://localhost:${port}/api-docs`);
-  
 });
 
 server.on("error", console.error);

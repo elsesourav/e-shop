@@ -6,7 +6,11 @@
     "rootDir": "../../",
     "tsBuildInfoFile": "out-tsc/auth-service/tsconfig.app.tsbuildinfo"
   },
-  "include": ["src/**/*.ts", "src/**/*.json", "../../packages/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.json",
+    "../../packages/**/*.ts"
+  ],
   "exclude": [
     "out-tsc",
     "dist",

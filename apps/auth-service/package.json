@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "node src/main.ts"
+    "dev": "ts-node -r tsconfig-paths/register src/main.ts"
   },
   "nx": {
     "name": "auth-service",
