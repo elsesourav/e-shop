@@ -1,10 +1,9 @@
+import * as dotenv from "dotenv";
+dotenv.config({ path: __dirname + "/../../../../../.env" });
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
 import ejs from "ejs";
 import path from "path";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
-
-dotenv.config();
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,

@@ -58,7 +58,9 @@ export const trackOtpRequest = async (email: string, next: NextFunction) => {
   const otpRequest = parseInt((await redis.get(otpRequestKey)) || "0");
 
   if (otpRequest >= 2) {
-    await redis.set(`otp_spam_lock:${email}`, "locked", "EX", 3600); // 1 hour lock
+    await redis.set(`otp_spam_lock:${email}`, "locked", {
+      ex: 3600,
+    }); // 1 hour lock
     return next(
       new ValidationError(
         "Too many OTP requests! Please try again after 1 hours."
@@ -66,7 +68,9 @@ export const trackOtpRequest = async (email: string, next: NextFunction) => {
     );
   }
 
-  await redis.set(otpRequestKey, (otpRequest + 1).toString(), "EX", 3600); // Count resets after 1 hour
+  await redis.set(otpRequestKey, (otpRequest + 1).toString(), {
+    ex: 3600,
+  }); // Count resets after 1 hour
 };
 
 export const sendOtp = async (
@@ -76,6 +80,6 @@ export const sendOtp = async (
 ) => {
   const otp = crypto.randomInt(1000, 9999).toString();
   await sendEmail(email, "Verify Your Email", template, { name, otp });
-  await redis.set(`otp:${email}`, otp, "EX", 300); // OTP valid for 5 minutes
-  await redis.set(`otp_cooldown:${email}`, "true", "EX", 60); // 1 minute cooldown
+  await redis.set(`otp:${email}`, otp, { ex: 300 }); // OTP valid for 5 minutes
+  await redis.set(`otp_cooldown:${email}`, "true", { ex: 60 }); // 1 minute cooldown
 };

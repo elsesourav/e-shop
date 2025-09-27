@@ -1,3 +1,5 @@
+import * as dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
 import proxy from "express-http-proxy";
@@ -6,6 +8,9 @@ import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 // import swaggerUi from "swagger-ui-express";
 // import axios from "axios";
 import cookieParser from "cookie-parser";
+
+console.log(process.env);
+
 
 const app = express();
 

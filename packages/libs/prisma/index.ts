@@ -1,4 +1,6 @@
+import * as dotenv from "dotenv";
 import { PrismaClient } from "../../../generated/prisma";
+dotenv.config();
 
 declare global {
   namespace globalThis {
@@ -7,6 +9,7 @@ declare global {
 }
 
 const prisma = new PrismaClient();
+
 
 if (process.env.NODE_ENV === "production") {
   globalThis.prisma = prisma;
