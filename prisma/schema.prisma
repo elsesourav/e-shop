@@ -23,7 +23,6 @@ model users {
   password  String?
   avatar    avatar?
   following String[]
-  avatarId  String?  @unique @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
