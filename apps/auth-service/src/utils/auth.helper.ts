@@ -5,7 +5,7 @@ import prisma from "@packages/libs/prisma";
 import redis from "@packages/libs/redis";
 import { sendEmail } from "./send-mail";
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 // const phoneRegex = /^\+?[1-9]\d{1,14}$/; // E.164 format
 
 export const validateRegistrationData = (
