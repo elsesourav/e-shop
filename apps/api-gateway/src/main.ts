@@ -9,8 +9,6 @@ import { rateLimit, ipKeyGenerator } from "express-rate-limit";
 // import axios from "axios";
 import cookieParser from "cookie-parser";
 
-console.log(process.env);
-
 
 const app = express();
 

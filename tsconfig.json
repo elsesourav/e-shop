@@ -1,9 +1,19 @@
 {
-  "extends": "tsconfig.base.json",
-  "compilerOptions": {
-    "module": "commonjs",
-    "types": ["node", "express"]
-  },
-  "include": ["src/**/*.{js,ts}"],
-  "exclude": ["node_modules", "dist"]
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "./apps/api-gateway"
+    },
+    {
+      "path": "./apps/auth-service"
+    },
+    {
+      "path": "./apps/user-ui"
+    },
+    {
+      "path": "./apps/auth-service-e2e"
+    }
+  ]
 }
