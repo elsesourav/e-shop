@@ -6,6 +6,8 @@ import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import GoogleButton from '../../../shared/components/google-button';
 import { Eye, EyeOff } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import axios, { AxiosError } from 'axios';
 
 type FormData = {
   email: string;
@@ -15,7 +17,6 @@ type FormData = {
 
 const Signup = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [serverError, setServerError] = useState(false);
   const [canResend, setCanResend] = useState(true);
   const [timer, setTimer] = useState(60);
   const [otp, setOtp] = useState(['', '', '', '']);
@@ -31,8 +32,57 @@ const Signup = () => {
     formState: { errors },
   } = useForm<FormData>();
 
+  const startResendTimer = () => {
+    setCanResend(false);
+    setTimer(60);
+    const intervalId = setInterval(() => {
+      setTimer((prevTimer) => {
+        if (prevTimer <= 1) {
+          clearInterval(intervalId);
+          setCanResend(true);
+          return 0;
+        }
+        return prevTimer - 1;
+      });
+    }, 1000);
+  };
+
+  const signupMutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER_URI}/api/user-registration`,
+        data
+      );
+      return response.data;
+    },
+    onSuccess: (_, formData) => {
+      setUserData(formData);
+      setShowOtp(true);
+      setCanResend(false);
+      setTimer(60);
+      startResendTimer();
+    },
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: async () => {
+      if (!userData) return;
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER_URI}/api/user-verify`,
+        {
+          ...userData,
+          otp: otp.join(''),
+        }
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      router.push('/login');
+    },
+  });
+
   const onSubmit = async (data: FormData) => {
-    console.log(data);
+    signupMutation.mutate(data);
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -56,8 +106,13 @@ const Signup = () => {
   };
 
   const resendOtp = () => {
-
-  }
+    if (userData) {
+      signupMutation.mutate(userData);
+      setOtp(['', '', '', '']);
+      inputRef.current[0]?.focus();
+      startResendTimer();
+    }
+  };
 
   return (
     <div className="w-full py-10 min-h-[85vh] bg-[#F1F1F1]">
@@ -167,15 +222,20 @@ const Signup = () => {
 
               <button
                 type="submit"
+                disabled={signupMutation.isPending}
                 className="w-full text-lg cursor-pointer bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-all duration-200 my-4"
               >
-                Signup
+                {signupMutation.isPending ? 'Signing up...' : 'Signup'}
               </button>
-              {serverError && (
-                <p className="text-red-500 text-sm mb-2">
-                  {String(serverError)}
-                </p>
-              )}
+              {signupMutation.isError &&
+                signupMutation.error instanceof AxiosError && (
+                  <p className="text-red-500 text-sm mt-2">
+                    {String(
+                      signupMutation.error.response?.data?.message ||
+                        signupMutation.error.message
+                    )}
+                  </p>
+                )}
             </form>
           ) : (
             <div>
@@ -200,20 +260,33 @@ const Signup = () => {
               </div>
               <button
                 type="button"
+                disabled={verifyOtpMutation.isPending}
+                onClick={() => verifyOtpMutation.mutate()}
                 className="w-full text-lg cursor-pointer bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-all duration-200 my-4"
               >
-                Verify & OTP
+                {verifyOtpMutation.isPending ? 'Verifying...' : 'Verify OTP'}
               </button>
               <p className="text-center text-sm mt-4">
                 {canResend ? (
-                    <button
-                      onClick={resendOtp}
-                      className="text-blue-500 cursor-pointer"
-                    >Resend OTP</button>
+                  <button
+                    onClick={resendOtp}
+                    className="text-blue-500 cursor-pointer"
+                  >
+                    Resend OTP
+                  </button>
                 ) : (
-                `Resend OTP in ${timer} sec`
+                  `Resend OTP in ${timer} sec`
                 )}
               </p>
+              {verifyOtpMutation.isError &&
+                verifyOtpMutation.error instanceof AxiosError && (
+                  <p className="text-red-500 text-sm mt-2">
+                    {String(
+                      verifyOtpMutation.error.response?.data?.message ||
+                        verifyOtpMutation.error.message
+                    )}
+                  </p>
+                )}
             </div>
           )}
         </div>

@@ -1,20 +1,46 @@
+'use client';
+
 import Link from 'next/link';
-import { ProfileIcon, HeartIcon, CartIcon } from '../../../assets/svg';
+import { CartIcon, HeartIcon, ProfileIcon } from '../../../assets/svg';
+import useUser from '../../../hooks/useUser';
 
 const HeaderProfile = () => {
+  const { user, isLoading } = useUser();
+
   return (
-    <div className="flex items-center gap-8 pd-2">
+    <div className="flex items-center gap-6 pd-2">
       <div className="flex items-center gap-2">
-        <Link
-          href={'/login'}
-          className="border-2 size-[50px] border-[#010F1C1A] rounded-full flex items-center justify-center"
-        >
-          <ProfileIcon />
-        </Link>
-        <Link href={'/login'}>
-          <span className="block font-medium">Hello,</span>
-          <span className="block font-semibold">Sign In</span>
-        </Link>
+        {!isLoading && user ? (
+          <>
+            <Link
+              href={'/profile'}
+              className="border-2 size-[50px] border-[#010F1C1A] rounded-full flex items-center justify-center"
+            >
+              <ProfileIcon />
+            </Link>
+            <Link href={'/profile'} className="min-w-16">
+              <span className="block font-medium">Hello,</span>
+              <span className="block font-semibold">
+                {user?.name?.split(' ')[0]}
+              </span>
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link
+              href={'/login'}
+              className="border-2 size-[50px] border-[#010F1C1A] rounded-full flex items-center justify-center"
+            >
+              <ProfileIcon />
+            </Link>
+            <Link href={'/login'} className="min-w-16">
+              <span className="block font-medium">Hello,</span>
+              <span className="block font-semibold">
+                {isLoading ? '...' : 'Sign In'}
+              </span>
+            </Link>
+          </>
+        )}
       </div>
       <div className="flex items-center gap-5">
         <Link href={'/wishlist'} className="relative">

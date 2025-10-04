@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import GoogleButton from '../../../shared/components/google-button';
 import { Eye, EyeOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
@@ -40,7 +39,9 @@ const Login = () => {
       router.push('/');
     },
     onError: (error: AxiosError) => {
-      const errorMessage = (error.response?.data as { message: string })?.message || 'Invalid credentials';
+      const errorMessage =
+        (error.response?.data as { message: string })?.message ||
+        'Invalid credentials';
       setServerError(errorMessage);
     },
   });
@@ -50,7 +51,7 @@ const Login = () => {
   };
 
   return (
-    <div className="w-full py-10 min-h-[85vh] bg-[#F1F1F1]">
+    <div className="w-full py-10 min-h-screen bg-[#F1F1F1]">
       <h1 className="text-4xl font-Poppins font-semibold text-black text-center">
         Login
       </h1>
@@ -68,14 +69,7 @@ const Login = () => {
               Signup
             </Link>
           </p>
-
-          <GoogleButton />
-          <div className="flex items-center my-5 text-gray-400 text-sm">
-            <div className="flex-1 border-t border-gray-300" />
-            <span className="px-3">Or Sign in with Email</span>
-            <div className="flex-1 border-t border-gray-300" />
-          </div>
-
+          
           <form action="POST" onSubmit={handleSubmit(onSubmit)}>
             <label
               htmlFor="email"
