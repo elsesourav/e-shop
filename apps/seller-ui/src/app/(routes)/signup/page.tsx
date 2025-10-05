@@ -3,11 +3,13 @@
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { countries } from './../../../utils/countries';
+import Countries from './../../../utils/countries';
 import Link from 'next/link';
+import CreateShop from 'apps/seller-ui/src/shared/modules/auth/create-shop';
+import StripeLogo from '../../assets/svg/stripe-logo';
 
 type FormData = {
   name: string;
@@ -30,11 +32,12 @@ const Signup = () => {
   const [timer, setTimer] = useState(60);
   const [otp, setOtp] = useState(['', '', '', '']);
   const [showOtp, setShowOtp] = useState(false);
-  const [userData, setUserData] = useState<FormData | null>(null);
+  const [sellerData, setSellerData] = useState<FormData | null>(null);
+  const [sellerId, setSellerId] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState('');
   const inputRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  const router = useRouter();
+  // const router = useRouter();
 
   const {
     register,
@@ -60,34 +63,40 @@ const Signup = () => {
   const signupMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER_URI}/api/user-registration`,
+        `${process.env.NEXT_PUBLIC_SERVER_URI}/api/seller-registration`,
         data
       );
       return response.data;
     },
     onSuccess: (_, formData) => {
-      setUserData(formData);
+      setSellerData(formData);
       setShowOtp(true);
       setCanResend(false);
       setTimer(60);
       startResendTimer();
     },
+    onError: (error) => {
+      console.log(error);
+    },
   });
 
   const verifyOtpMutation = useMutation({
     mutationFn: async () => {
-      if (!userData) return;
+      if (!sellerData) return;
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER_URI}/api/user-verify`,
+        `${process.env.NEXT_PUBLIC_SERVER_URI}/api/seller-verify`,
         {
-          ...userData,
+          ...sellerData,
           otp: otp.join(''),
         }
       );
       return response.data;
     },
-    onSuccess: () => {
-      router.push('/login');
+    onSuccess: (data) => {
+      setSellerId(data?.seller?.id);
+      setActiveStep(1);
+      setShowOtp(false);
+      setOtp(['', '', '', '']);
     },
   });
 
@@ -116,11 +125,26 @@ const Signup = () => {
   };
 
   const resendOtp = () => {
-    if (userData) {
-      signupMutation.mutate(userData);
+    if (sellerData) {
+      signupMutation.mutate(sellerData);
       setOtp(['', '', '', '']);
       inputRef.current[0]?.focus();
       startResendTimer();
+    }
+  };
+
+  const connectStripe = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_SERVER_URI}/api/create-stripe-account`,
+        { sellerId }
+      );
+
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -217,7 +241,7 @@ const Signup = () => {
                   className="w-full px-3 py-2 border border-gray-300 outline-0 rounded-md mb-1"
                 >
                   <option value="">Select your country</option>
-                  {countries.map((country) => (
+                  {Countries.map((country) => (
                     <option key={country.code} value={country.name}>
                       {country.name} {country.flag}
                     </option>
@@ -238,7 +262,7 @@ const Signup = () => {
                 <div className="flex gap-2">
                   <div className="w-[100px] px-3 py-2 border border-gray-300 rounded-md bg-gray-50 flex items-center justify-center font-medium text-gray-700">
                     {selectedCountry
-                      ? countries.find((c) => c.name === selectedCountry)
+                      ? Countries.find((c) => c.name === selectedCountry)
                           ?.phone || '+00'
                       : '+00'}
                   </div>
@@ -379,6 +403,23 @@ const Signup = () => {
               </div>
             )}
           </>
+        )}
+
+        {activeStep === 1 && (
+          <CreateShop sellerId={sellerId} setActiveStep={setActiveStep} />
+        )}
+
+        {activeStep === 2 && (
+          <div className="text-center">
+            <h3 className="text-3xl font-semibold mb-4">Withdraw Method</h3>
+            <br />
+            <button
+              className="w-full  flex justify-center items-center gap-3 text-lg cursor-pointer bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-all duration-200 my-4"
+              onClick={connectStripe}
+            >
+              Connect Stripe <StripeLogo />
+            </button>
+          </div>
         )}
       </div>
     </div>

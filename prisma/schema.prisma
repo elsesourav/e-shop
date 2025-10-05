@@ -8,21 +8,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model avatar {
+model images {
   id     String  @id @default(auto()) @map("_id") @db.ObjectId
   fileId String
   url    String
   userId String? @unique @db.ObjectId
+  shopId String? @unique @db.ObjectId
   users  users?  @relation(fields: [userId], references: [id])
+  shops  shops?  @relation(fields: [shopId], references: [id])
 }
 
 model users {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  email       String        @unique
+  password    String?
+  avatar      images?
+  following   String[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  shopReviews shopReviews[]
+}
+
+model shopReviews {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  email     String   @unique
+  user      users    @relation(fields: [userId], references: [id])
+  userId    String   @db.ObjectId
+  rating    Float
+  reviews   String?
+  shopsId   String   @db.ObjectId
+  shops     shops?   @relation(fields: [shopsId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model shops {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  name         String        @unique
+  description  String
+  category     String
+  avatar       images?
+  coverBanner  String?
+  address      String
+  openingHours String?
+  website      String?
+  socialLinks  Json[]
+  ratings      Float         @default(0.0)
+  reviews      shopReviews[]
+  sellerId    String        @unique @db.ObjectId
+  sellers      sellers       @relation(fields: [sellerId], references: [id])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model sellers {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String
+  email     String   @unique
+  phone     String
+  country   String
   password  String?
-  avatar    avatar?
-  following String[]
+  stripeId  String?  @unique
+  shop      shops?
+  shopId    String?  @unique @db.ObjectId
+  shopsId   String?  @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

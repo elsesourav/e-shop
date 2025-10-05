@@ -12,12 +12,12 @@ export const validateRegistrationData = (
   data: any,
   userType: 'user' | 'seller'
 ) => {
-  const { name, email, password, phone_number, country } = data;
+  const { name, email, password, phone, country } = data;
   if (
     !name ||
     !email ||
     !password ||
-    (userType === 'seller' && (!phone_number || !country))
+    (userType === 'seller' && (!phone || !country))
   ) {
     throw new ValidationError('Missing required fields!');
   }
@@ -148,8 +148,9 @@ export const handleForgotPassword = async (
 
     // Find user/seller by email in database
     const user =
-      userType === 'user' &&
-      (await prisma.users.findUnique({ where: { email } }));
+      userType === 'user'
+        ? await prisma.users.findUnique({ where: { email } })
+        : await prisma.sellers.findUnique({ where: { email } });
 
     if (!user) {
       return next(
@@ -162,7 +163,13 @@ export const handleForgotPassword = async (
     await trackOtpRequest(email, next);
 
     // Generate and send OTP on email
-    await sendOtp(user.name, email, 'user-forgot-password-mail');
+    await sendOtp(
+      user.name,
+      email,
+      userType === 'user'
+        ? 'user-forgot-password-mail'
+        : 'seller-forgot-password-mail'
+    );
 
     res.status(200).json({
       message: `OTP sent to your email! Please verify your account to reset your password.`,
