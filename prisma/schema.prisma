@@ -70,7 +70,6 @@ model sellers {
   password  String?
   stripeId  String?  @unique
   shop      shops?
-  shopId    String?  @unique @db.ObjectId
   shopsId   String?  @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -9,7 +9,7 @@ import {
   sellerVerify,
   userForgotPassword,
   userLogin,
-  userRefreshToken,
+  refreshToken,
   userRegistration,
   userResetPassword,
   userVerify,
@@ -24,7 +24,6 @@ const router: Router = express.Router();
 router.post('/user-registration', userRegistration);
 router.post('/user-verify', userVerify);
 router.post('/user-login', userLogin);
-router.post('/user-refresh-token', userRefreshToken);
 router.get('/logged-in-user', isAuthenticated, getLoggedInUser);
 router.post('/user-forgot-password', userForgotPassword);
 router.post('/user-verify-forgot-password', userVerifyForgotPassword);
@@ -37,5 +36,8 @@ router.post('/create-shop', createShop);
 router.post('/create-stripe-account', createStripeConnectAccount);
 router.post('/seller-login', sellerLogin);
 router.get('/logged-in-seller', isAuthenticated, isSeller, getSeller);
+
+// All routes
+router.post('/refresh-token', refreshToken);
 
 export default router;

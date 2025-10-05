@@ -113,6 +113,9 @@ export const userLogin = async (
       return next(new AuthError('Invalid email or password!'));
     }
 
+    res.clearCookie("refresh_token_seller");
+    res.clearCookie("access_token_seller");
+
     const accessToken = jwt.sign(
       { id: user.id, role: 'user' },
       process.env.JWT_ACCESS_TOKEN_SECRET as string,
@@ -137,51 +140,6 @@ export const userLogin = async (
         email: user.email,
       },
     });
-  } catch (error) {
-    return next(error);
-  }
-};
-
-// Refresh Token user
-export const userRefreshToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const refreshToken = req.cookies.refresh_token;
-    if (!refreshToken) {
-      return new ValidationError('Unauthorized! Please login again.');
-    }
-
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_TOKEN_SECRET as string
-    ) as { id: string; role: string };
-
-    if (!decoded || !decoded.id || decoded.role) {
-      return new JsonWebTokenError('Forbidden Invalid refresh token!');
-    }
-
-    // const account;
-    // if (decoded.role === 'user') {
-    const user = await prisma.users.findUnique({ where: { id: decoded.id } });
-
-    // }
-
-    if (!user) {
-      return new AuthError('Forbidden User/Seller not found!');
-    }
-
-    const newAccessToken = jwt.sign(
-      { id: decoded.id, role: decoded.role },
-      process.env.JWT_ACCESS_TOKEN_SECRET as string,
-      { expiresIn: '15m' }
-    );
-
-    setCookie(res, 'access_token', newAccessToken);
-
-    res.status(201).json({ success: true });
   } catch (error) {
     return next(error);
   }
@@ -364,7 +322,7 @@ export const createShop = async (
     } = req.body;
 
     console.log(req.body);
-    
+
     if (
       !name ||
       !description ||
@@ -471,6 +429,9 @@ export const sellerLogin = async (
       return next(new AuthError('Invalid email or password!'));
     }
 
+    res.clearCookie("refresh_token");
+    res.clearCookie("access_token");
+
     const accessToken = jwt.sign(
       { id: seller.id, role: 'seller' },
       process.env.JWT_ACCESS_TOKEN_SECRET as string,
@@ -501,10 +462,67 @@ export const sellerLogin = async (
 };
 
 // get Seller
-export const getSeller = async (req: any, res: Response, next: NextFunction) => {
+export const getSeller = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const seller = req.seller;
     res.status(201).json({ success: true, seller });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Refresh Token
+export const refreshToken = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const refreshToken =
+      req.cookies.refresh_token || req.cookies.refresh_token_seller;
+    if (!refreshToken) {
+      return new ValidationError('Unauthorized! Please login again.');
+    }
+
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_TOKEN_SECRET as string
+    ) as { id: string; role: string };
+
+    if (!decoded || !decoded.id || decoded.role) {
+      return new JsonWebTokenError('Forbidden Invalid refresh token!');
+    }
+
+    let account;
+    if (decoded.role === 'user') {
+      account = await prisma.users.findUnique({ where: { id: decoded.id } });
+    } else if (decoded.role === 'seller') {
+      account = await prisma.sellers.findUnique({ where: { id: decoded.id } });
+    } else {
+      return new AuthError('Forbidden Invalid role!');
+    }
+
+    if (!account) {
+      return new AuthError(`Forbidden ${decoded.role} not found!`);
+    }
+
+    const newAccessToken = jwt.sign(
+      { id: decoded.id, role: decoded.role },
+      process.env.JWT_ACCESS_TOKEN_SECRET as string,
+      { expiresIn: '15m' }
+    );
+
+    const accessToken =
+      decoded.role === 'user' ? 'access_token' : 'access_token_seller';
+
+    setCookie(res, accessToken, newAccessToken);
+
+    req.role = decoded.role;
+    res.status(201).json({ success: true });
   } catch (error) {
     return next(error);
   }

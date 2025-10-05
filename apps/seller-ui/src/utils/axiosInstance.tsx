@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_SERVER_URI,
   withCredentials: true, // Include cookies in requests
@@ -33,7 +32,6 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-
 // Handle expired token and refresh logic
 axiosInstance.interceptors.response.use(
   (response) => response,
@@ -61,7 +59,7 @@ axiosInstance.interceptors.response.use(
         );
         isRefreshing = false;
         onRefreshSuccess();
-        
+
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         isRefreshing = false;
@@ -73,6 +71,6 @@ axiosInstance.interceptors.response.use(
 
     return Promise.reject(error);
   }
-)
+);
 
 export default axiosInstance;
