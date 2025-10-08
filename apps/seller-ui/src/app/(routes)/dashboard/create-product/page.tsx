@@ -1,12 +1,14 @@
 'use client';
+import { useQuery } from '@tanstack/react-query';
 import ImagePlaceholder from 'apps/seller-ui/src/shared/components/image-placeholder';
+import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import { ChevronRight } from 'lucide-react';
 import ColorSelector from 'packages/components/color-selector';
 import CustomProperties from 'packages/components/custom-properties';
 import CustomSpecifications from 'packages/components/custom-specifications';
 import Input from 'packages/components/inputs';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 
 const Page = () => {
   const {
@@ -21,6 +23,29 @@ const Page = () => {
   const [isChanged, setIsChanged] = useState(false);
   const [images, setImages] = useState<(File | null)[]>([null]);
   const [loading, setLoading] = useState(false);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      try {
+        const res = await axiosInstance.get('/product/api/get-categories');
+        return res.data;
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
+
+  const categories = data?.categories || [];
+  const subCategoriesData = data?.subCategories || {};
+  const selectedCategory = watch('category');
+  const regularPrice = watch('regularPrice');
+
+  const subCategories = useMemo(() => {
+    return selectedCategory ? subCategoriesData[selectedCategory] || [] : [];
+  }, [selectedCategory, subCategoriesData]);
 
   const onSubmit = (data: any) => {
     console.log(data);
@@ -230,14 +255,20 @@ const Page = () => {
               </div>
 
               <div className="mt-2">
-                <label className='block font-semibold text-gray-300 mb-1'>Cash On Delivery *</label>
+                <label className="block font-semibold text-gray-300 mb-1">
+                  Cash On Delivery *
+                </label>
                 <select
                   {...register('cod', { required: 'This field is required' })}
                   className="w-full border outline-none border-gray-700 bg-transparent p-3 rounded-md text-white"
                 >
                   <option value="">Select an option</option>
-                  <option value="yes" className="bg-black">Yes</option>
-                  <option value="no" className="bg-black">No</option>
+                  <option value="yes" className="bg-black">
+                    Yes
+                  </option>
+                  <option value="no" className="bg-black">
+                    No
+                  </option>
                 </select>
                 {errors.cod && (
                   <p className="text-red-500 text-xs mt-1">
@@ -245,12 +276,78 @@ const Page = () => {
                   </p>
                 )}
               </div>
-
             </div>
 
             <div className="w-2/4">
-              <label className='block font-semibold text-gray-300 mb-1'>Category *</label>
-              
+              <label className="block font-semibold text-gray-300 mb-1">
+                Category *
+              </label>
+
+              {isLoading ? (
+                <p className="text-gray-400">Loading categories...</p>
+              ) : isError ? (
+                <p className="text-red-500">Error loading categories</p>
+              ) : (
+                <Controller
+                  name="category"
+                  control={control}
+                  rules={{ required: 'Category is required' }}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="w-full border outline-none border-gray-700 bg-transparent p-2 rounded-md text-white"
+                    >
+                      <option value="">Select a category</option>
+                      {categories.map((category: string) => (
+                        <option
+                          key={category}
+                          value={category}
+                          className="bg-black"
+                        >
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                />
+              )}
+              {errors.category && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.category.message as string}
+                </p>
+              )}
+
+              <div className="mt-2">
+                {
+                  <>
+                    <label className="block font-semibold text-gray-300 mb-1">
+                      Sub Category *
+                    </label>
+                    <Controller
+                      name="subCategory"
+                      control={control}
+                      rules={{ required: 'Sub Category is required' }}
+                      render={({ field }) => (
+                        <select
+                          {...field}
+                          className="w-full border outline-none border-gray-700 bg-transparent p-2 rounded-md text-white"
+                        >
+                          <option value="">Select a sub category</option>
+                          {subCategories.map((subCat: string) => (
+                            <option
+                              key={subCat}
+                              value={subCat}
+                              className="bg-black"
+                            >
+                              {subCat}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                  </>
+                }
+              </div>
             </div>
           </div>
         </div>

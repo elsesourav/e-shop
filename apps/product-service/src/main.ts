@@ -4,6 +4,7 @@ import { errorMiddleware } from '@packages/error-handler/error-middleware';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
+import router from './routes/product.route';
 // import swaggerUi from 'swagger-ui-express';
 // const swaggerDocument = require('./swagger-output.json');
 
@@ -30,14 +31,14 @@ app.get('/', (req, res) => {
 // });
 
 // // Routers
-// app.use('/api', router);
+app.use('/api', router);
 
 app.use(errorMiddleware);
 
 const port = process.env.PORT || 6002;
 const server = app.listen(port, () => {
   console.log(`Product service running at http://localhost:${port}/`);
-  // console.log(`Swagger Docs available at http://localhost:${port}/api-docs`);
+  console.log(`Swagger Docs available at http://localhost:${port}/api-docs`);
 });
 
 server.on('error', console.error);

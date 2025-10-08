@@ -149,14 +149,21 @@ const Signup = () => {
   };
 
   return (
-    <div className="w-full flex flex-col items-center pt-10 min-h-screen">
+    <div className="w-full flex flex-col items-center pt-10 min-h-screen bg-[#F1F1F1]">
       {/* Stepper */}
       <div className="relative flex justify-between items-center mb-8 md:w-[50%]">
-        <div className="absolute top-[25%] left-0 w-full h-1 bg-gray-300 -z-10" />
+        <div
+          className="absolute top-[25%] left-0 w-full h-1 z-10 transition-background"
+          style={{
+            background: `linear-gradient(to right, #3B82F6 ${
+              50 * activeStep
+            }%, #CCCCCC ${50 * activeStep}%, #CCCCCC 100%)`,
+          }}
+        />
         {steps.map((step, index) => (
           <div key={index}>
             <div
-              className={`size-10 flex items-center justify-center rounded-full text-white font-bold ${
+              className={`relative size-10 flex items-center justify-center rounded-full text-white font-bold z-20 ${
                 index <= activeStep ? 'bg-blue-500' : 'bg-gray-300'
               }`}
             >
