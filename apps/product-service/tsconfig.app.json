@@ -3,8 +3,9 @@
   "compilerOptions": {
     "outDir": "dist",
     "types": ["node", "express"],
+    "rootDir": "../../",
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
   },
-  "include": ["src/**/*.ts", "../../generated/prisma/**/*"],
+  "include": ["src/**/*.ts", "../../packages/**/*.ts"],
   "exclude": []
 }

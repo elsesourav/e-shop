@@ -41,7 +41,7 @@ const SidebarWrapper = () => {
     >
       <Sidebar.Header>
         <Box>
-          <Link href={'/'} className="flex justify-center text-center gap-2">
+          <Link href={'/'} className="flex justify-center items-center text-center gap-2">
             <Logo width={30} height={30} />
             <Box>
               <h3 className="text-xl font-medium text-[#ecedee]">
@@ -60,7 +60,7 @@ const SidebarWrapper = () => {
             href="/dashboard"
             title="Dashboard"
             icon={
-              <Home width={26} height={26} fill={getColorIcon('/dashboard')} />
+              <Home width={24} height={24} fill={getColorIcon('/dashboard')} />
             }
             isActive={activeSidebar === '/dashboard'}
           />

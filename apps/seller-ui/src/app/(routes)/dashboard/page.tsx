@@ -1,6 +1,6 @@
 const page = () => {
   return (
-    <div>Dashboard</div>
+    <div className="h-[200vh]">Dashboard</div>
   )
 }
 export default page

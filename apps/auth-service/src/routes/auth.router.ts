@@ -15,8 +15,8 @@ import {
   userVerify,
   userVerifyForgotPassword,
 } from '../controllers/auth.controller';
-import isAuthenticated from "./../../../../packages/middleware/isAuthenticated";
-import { isSeller } from './../../../../packages/middleware/authorizeRoles';
+import isAuthenticated from "@packages/middleware/isAuthenticated";
+import { isSeller } from '@packages/middleware/authorizeRoles';
 
 const router: Router = express.Router();
 
