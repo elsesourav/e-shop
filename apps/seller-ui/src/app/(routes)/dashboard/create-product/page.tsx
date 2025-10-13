@@ -1,14 +1,24 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
 import ImagePlaceholder from 'apps/seller-ui/src/shared/components/image-placeholder';
+import { enhancements } from 'apps/seller-ui/src/utils/ai-enhancements';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Wand, X } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 import ColorSelector from 'packages/components/color-selector';
 import CustomProperties from 'packages/components/custom-properties';
 import CustomSpecifications from 'packages/components/custom-specifications';
 import Input from 'packages/components/inputs';
+import RichTextEditor from 'packages/components/rich-text-editor';
+import SizeSelector from 'packages/components/size-selector';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+
+interface ImageInterface {
+  fileId: string;
+  fileUrl: string;
+}
 
 const Page = () => {
   const {
@@ -19,9 +29,14 @@ const Page = () => {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  const [openImageModal, setOpenImageModal] = useState(false);
-  const [isChanged, setIsChanged] = useState(false);
-  const [images, setImages] = useState<(File | null)[]>([null]);
+  const [openImageModal, setOpenImageModal] = useState(true);
+  const [isChanged, setIsChanged] = useState(true);
+  const [activeEffect, setActiveEffect] = useState<string | null>(null);
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(
+    'https://ik.imagekit.io/elsesourav/products/es-product-1760144148787_O2B3AVlMr.jpg?updatedAt=1760144150990'
+  );
+  const [images, setImages] = useState<(ImageInterface | null)[]>([null]);
   const [loading, setLoading] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
@@ -38,6 +53,15 @@ const Page = () => {
     retry: 2,
   });
 
+  const { data: discountCodes = [], isLoading: isLoadingDiscountCodes } =
+    useQuery({
+      queryKey: ['shop-discounts'],
+      queryFn: async () => {
+        const res = await axiosInstance.get('/product/api/get-discount-codes');
+        return res?.data?.discountCodes || [];
+      },
+    });
+
   const categories = data?.categories || [];
   const subCategoriesData = data?.subCategories || {};
   const selectedCategory = watch('category');
@@ -51,36 +75,76 @@ const Page = () => {
     console.log(data);
   };
 
-  const handleImageChange = (file: File | null, index: number) => {
-    const updatedImages = [...images];
-    updatedImages[index] = file;
-
-    if (index === images.length - 1 && images.length < 8) {
-      updatedImages.push(null);
-    }
-
-    setImages(updatedImages);
-    setValue('images', updatedImages);
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = (error) => {
+        reject(error);
+      };
+    });
   };
 
-  const handleRemoveImage = (index: number) => {
-    setImages((prevImages) => {
-      let updatedImages = [...prevImages];
+  const handleImageChange = async (file: File | null, index: number) => {
+    if (!file) return;
 
-      if (index === -1) {
-        updatedImages[0] = null;
-      } else {
-        updatedImages.splice(index, 1);
+    setIsImageUploading(true);
+
+    try {
+      const base64Image = await convertToBase64(file);
+      const response = await axiosInstance.post(
+        '/product/api/upload-product-image',
+        { image: base64Image }
+      );
+
+      const updatedImages = [...images];
+      const uploadedImage: ImageInterface = {
+        fileId: response.data.fileId,
+        fileUrl: response.data.fileUrl,
+      };
+
+      updatedImages[index] = uploadedImage;
+
+      if (index === images.length - 1 && images.length < 8) {
+        updatedImages.push(null);
       }
+      setImages(updatedImages);
+      setValue('images', updatedImages);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsImageUploading(false);
+    }
+  };
 
+  const handleRemoveImage = async (index: number) => {
+    try {
+      const updatedImages = [...images];
+      const imageToDelete = updatedImages[index];
+
+      if (imageToDelete && typeof imageToDelete === 'object') {
+        await axiosInstance.delete('/product/api/delete-product-image', {
+          data: { fileId: imageToDelete.fileId! },
+        });
+      }
+      updatedImages.splice(index, 1);
+
+      // Add null placeholder if less than 8 images
       if (!updatedImages.includes(null) && updatedImages.length < 8) {
         updatedImages.push(null);
       }
 
-      return updatedImages;
-    });
-    setValue('images', images);
+      setImages(updatedImages);
+      setValue('images', updatedImages);
+    } catch (error) {
+      console.log(error);
+    }
   };
+
+  const handleSaveDraft = () => {};
 
   return (
     <form
@@ -92,7 +156,12 @@ const Page = () => {
         Create Product
       </h2>
       <div className="flex items-center">
-        <span className="text-sm text-[#80DEEA] cursor-pointer">Dashboard</span>
+        <Link
+          href="/dashboard"
+          className="text-sm text-[#80DEEA] cursor-pointer"
+        >
+          Dashboard
+        </Link>
         <ChevronRight size={20} className="opacity-80" />
         <span>Create Product</span>
       </div>
@@ -107,6 +176,9 @@ const Page = () => {
               size="765 x 850"
               small={false}
               index={0}
+              images={images}
+              isImageUploading={isImageUploading}
+              setSelectedImage={setSelectedImage}
               onImageChange={handleImageChange}
               onRemoveImage={handleRemoveImage}
             />
@@ -120,9 +192,12 @@ const Page = () => {
                 size="765 x 850"
                 small
                 index={index + 1}
+                images={images}
+                isImageUploading={isImageUploading}
+                setSelectedImage={setSelectedImage}
                 onImageChange={handleImageChange}
                 onRemoveImage={handleRemoveImage}
-                defaultImage={img ? URL.createObjectURL(img) : null}
+                defaultImage={img?.fileUrl || null}
               />
             ))}
           </div>
@@ -279,43 +354,45 @@ const Page = () => {
             </div>
 
             <div className="w-2/4">
-              <label className="block font-semibold text-gray-300 mb-1">
-                Category *
-              </label>
+              <div className="mt-2">
+                <label className="block font-semibold text-gray-300 mb-1">
+                  Category *
+                </label>
 
-              {isLoading ? (
-                <p className="text-gray-400">Loading categories...</p>
-              ) : isError ? (
-                <p className="text-red-500">Error loading categories</p>
-              ) : (
-                <Controller
-                  name="category"
-                  control={control}
-                  rules={{ required: 'Category is required' }}
-                  render={({ field }) => (
-                    <select
-                      {...field}
-                      className="w-full border outline-none border-gray-700 bg-transparent p-2 rounded-md text-white"
-                    >
-                      <option value="">Select a category</option>
-                      {categories.map((category: string) => (
-                        <option
-                          key={category}
-                          value={category}
-                          className="bg-black"
-                        >
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                />
-              )}
-              {errors.category && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.category.message as string}
-                </p>
-              )}
+                {isLoading ? (
+                  <p className="text-gray-400">Loading categories...</p>
+                ) : isError ? (
+                  <p className="text-red-500">Error loading categories</p>
+                ) : (
+                  <Controller
+                    name="category"
+                    control={control}
+                    rules={{ required: 'Category is required' }}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        className="w-full border outline-none border-gray-700 bg-transparent p-2 rounded-md text-white"
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map((category: string) => (
+                          <option
+                            key={category}
+                            value={category}
+                            className="bg-black"
+                          >
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  />
+                )}
+                {errors.category && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.category.message as string}
+                  </p>
+                )}
+              </div>
 
               <div className="mt-2">
                 {
@@ -348,11 +425,265 @@ const Page = () => {
                   </>
                 }
               </div>
+
+              <div className="mt-2">
+                <label
+                  htmlFor="detailDescription"
+                  className="block font-semibold text-gray-300 mb-1"
+                >
+                  Detailed Description (min. 100 words) *
+                </label>
+
+                <Controller
+                  name="detailDescription"
+                  control={control}
+                  rules={{
+                    required: 'Detailed Description is required',
+                    validate: (value) => {
+                      const wordCount = value.trim().split(/\s+/).length;
+                      return (
+                        wordCount >= 100 ||
+                        `Detailed Description must be at least 100 words (currently ${wordCount} words)`
+                      );
+                    },
+                  }}
+                  render={({ field }) => (
+                    <RichTextEditor
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                    />
+                  )}
+                />
+
+                {errors.detailDescription && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.detailDescription.message as string}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-2">
+                <Input
+                  label="Product Video URL"
+                  placeholder="https://www.youtube.com/watch?v=example"
+                  {...register('videoUrl', {
+                    required: 'Video URL is required',
+                    pattern: {
+                      value:
+                        /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/,
+                      message: 'Video URL must be a valid YouTube link',
+                    },
+                  })}
+                />
+
+                {errors.videoUrl && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.videoUrl.message as string}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-2">
+                <Input
+                  label="Regular Price *"
+                  placeholder="1200"
+                  type="number"
+                  {...register('regularPrice', {
+                    required: 'Regular Price is required',
+                    valueAsNumber: true,
+                    min: {
+                      value: 1,
+                      message: 'Regular Price must be at least 1',
+                    },
+                    validate: (value) =>
+                      !isNaN(value) || 'Only numbers are allowed',
+                  })}
+                />
+
+                {errors.regularPrice && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.regularPrice.message as string}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-2">
+                <Input
+                  label="Sale Price"
+                  placeholder="1000"
+                  type="number"
+                  {...register('salePrice', {
+                    valueAsNumber: true,
+                    min: {
+                      value: 1,
+                      message: 'Sale Price must be at least 1',
+                    },
+                    validate: (value) => {
+                      if (isNaN(value)) return 'Only numbers are allowed';
+                      if (regularPrice && value >= regularPrice) {
+                        return 'Sale Price must be less than Regular Price';
+                      }
+                      return true;
+                    },
+                  })}
+                />
+
+                {errors.salePrice && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.salePrice.message as string}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-2">
+                <Input
+                  label="Stock *"
+                  placeholder="100"
+                  type="number"
+                  {...register('stock', {
+                    required: 'Stock  is required',
+                    valueAsNumber: true,
+                    min: {
+                      value: 1,
+                      message: 'Stock  must be at least 1',
+                    },
+                    max: {
+                      value: 10000,
+                      message: 'Stock  cannot exceed 10,000',
+                    },
+                    validate: (value) => {
+                      if (isNaN(value)) return 'Only numbers are allowed';
+                      if (!Number.isInteger(value))
+                        return 'Stock must be whole number';
+                      return true;
+                    },
+                  })}
+                />
+
+                {errors.stock && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.stock.message as string}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-2">
+                <SizeSelector control={control} errors={errors} />
+              </div>
+
+              {/* Discount Codes (optional) */}
+              <div className="mt-3">
+                <label
+                  htmlFor="discountCodes"
+                  className="block font-semibold text-gray-300 mb-1"
+                >
+                  Discount Code (optional)
+                </label>
+
+                {isLoadingDiscountCodes ? (
+                  <p className="text-gray-400 text-center">
+                    Loading Discount Codes...
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {discountCodes?.map((discount: any) => (
+                      <button
+                        key={discount.id}
+                        type="button"
+                        className={`px-3 py-1 rounded-md text-sm border transition ${
+                          watch('discountCode')?.includes(discount.id)
+                            ? 'bg-blue-600 text-white border-blue-400'
+                            : 'bg-gray-800 text-gray-300 border-gray-600 hover:border-gray-700'
+                        }`}
+                        onClick={() => {
+                          const currentSelection = watch('discountCode') || [];
+                          const updatedSelection = currentSelection.includes(
+                            discount.id
+                          )
+                            ? currentSelection.filter(
+                                (id: string) => id !== discount.id
+                              )
+                            : [...currentSelection, discount.id];
+                          setValue('discountCode', updatedSelection);
+                        }}
+                      >
+                        {discount.name}{' '}
+                        {discount.type === 'percentage'
+                          ? `(${discount.value}%)`
+                          : `(Flat ₹${discount.value})`}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-      {/* <div className="flex mt-6 justify-end gap-3"></div> */}
+
+      {openImageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-[450px] max-w-md">
+            <div className="flex justify-between items-center border-b border-gray-700 pb-3">
+              <h3 className="text-xl font-semibold text-white">
+                Enhance Image
+              </h3>
+              <X
+                size={20}
+                className="cursor-pointer"
+                onClick={() => setOpenImageModal(false)}
+              />
+            </div>
+
+            <div className="relative w-full h-[250px] flex justify-center items-center rounded-md overflow-hidden border border-gray-600">
+              <Image
+                src={selectedImage || ''}
+                layout="fill"
+                alt="Image preview"
+              />
+            </div>
+            {selectedImage && (
+              <div className="mt-4 space-y-2">
+                <h3 className="text-white text-sm font-semibold">
+                  AI Enhancements
+                </h3>
+                <div className="grid grid-cols-2 gap-3 max-h-[250px] overflow-auto">
+                  {enhancements?.map(({ label, effect}) => (
+                    <button
+                      key={effect}
+                      type="button"
+                      className={`p-2 rounded-md flex items-center gap-2 transition ${activeEffect === effect ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-500'} `}
+                    >
+                      <Wand size={18} /> {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 flex justify-end gap-3">
+        {isChanged && (
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+          >
+            Save Draft
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition ${
+            loading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {loading ? 'Creating...' : 'Create'}
+        </button>
+      </div>
     </form>
   );
 };

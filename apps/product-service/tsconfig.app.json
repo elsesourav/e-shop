@@ -6,6 +6,17 @@
     "rootDir": "../../",
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
   },
-  "include": ["src/**/*.ts", "../../packages/**/*.ts"],
-  "exclude": []
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.json",
+    "../../packages/**/*.ts",
+    "../seller-ui/src/utils/ai-enhancements.ts"
+  ],
+  "exclude": [
+    "out-tsc",
+    "dist",
+    "jest.config.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts"
+  ]
 }

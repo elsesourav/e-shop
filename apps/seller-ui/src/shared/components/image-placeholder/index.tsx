@@ -1,6 +1,6 @@
 import { Pencil, WandSparkles, X } from 'lucide-react';
 import Image from 'next/image';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
 interface Props {
   size: string;
@@ -9,6 +9,12 @@ interface Props {
   onRemoveImage?: (index: number) => void;
   defaultImage?: string | null;
   setOpenImageModal: (openImageModal: boolean) => void;
+  setSelectedImage: (image: string) => void;
+  isImageUploading: boolean;
+  images: ({
+    fileId: string;
+    fileUrl: string;
+  } | null)[];
   index?: any;
 }
 
@@ -19,17 +25,31 @@ const ImagePlaceholder = ({
   onRemoveImage,
   defaultImage,
   setOpenImageModal,
+  setSelectedImage,
+  isImageUploading,
+  images,
   index,
 }: Props) => {
   const [imagePreview, setImagePreview] = useState<string | null>(
     defaultImage || null
   );
 
+  useEffect(() => {
+    setImagePreview(defaultImage || null);
+  }, [defaultImage]);
+
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
       setImagePreview(file ? URL.createObjectURL(file) : null);
       onImageChange(file, index!);
+    }
+  };
+
+  const handleRemoveClick = (i: number) => {
+    setImagePreview(null);
+    if (onRemoveImage) {
+      onRemoveImage(i);
     }
   };
 
@@ -51,14 +71,20 @@ const ImagePlaceholder = ({
         <>
           <button
             type="button"
-            onClick={() => onRemoveImage && onRemoveImage(index!)}
+            disabled={isImageUploading}
+            onClick={() => handleRemoveClick?.(index!)}
             className="absolute top-3 right-3 p-2 !rounded bg-red-600 shadow-lg"
           >
             <X size={16} color="white" />
           </button>
           <button
             type="button"
+            disabled={isImageUploading}
             className="absolute top-3 right-[70px] p-2 !rounded bg-blue-600 shadow-lg cursor-pointer"
+            onClick={() => {
+              setOpenImageModal(true);
+              setSelectedImage(images[index]?.fileUrl || '');
+            }}
           >
             <WandSparkles size={16} color="white" />
           </button>

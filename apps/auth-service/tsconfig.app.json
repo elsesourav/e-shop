@@ -9,7 +9,8 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.json",
-    "../../packages/**/*.ts"
+    "../../packages/**/*.ts",
+    "../seller-ui/src/utils/ai-enhancements.ts"
   ],
   "exclude": [
     "out-tsc",

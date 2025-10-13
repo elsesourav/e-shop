@@ -55,7 +55,7 @@ model shops {
   socialLinks  Json[]
   ratings      Float         @default(0.0)
   reviews      shopReviews[]
-  sellerId    String        @unique @db.ObjectId
+  sellerId     String        @unique @db.ObjectId
   sellers      sellers       @relation(fields: [sellerId], references: [id])
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -75,11 +75,21 @@ model sellers {
   updatedAt DateTime @updatedAt
 }
 
-
 model siteConfigs {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  categories  String[]
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  categories    String[]
   subCategories Json
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model discountCodes {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  type      String
+  value     Float
+  code      String   @unique
+  sellerId  String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

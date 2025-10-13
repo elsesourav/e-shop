@@ -1,10 +1,10 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
 import { errorMiddleware } from '@packages/error-handler/error-middleware';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import * as dotenv from 'dotenv';
 import express from 'express';
 import router from './routes/product.route';
+dotenv.config();
 // import swaggerUi from 'swagger-ui-express';
 // const swaggerDocument = require('./swagger-output.json');
 
@@ -18,7 +18,8 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 
 app.get('/', (req, res) => {
