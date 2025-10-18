@@ -1,4 +1,8 @@
-import { NotFoundError, ValidationError } from '@packages/error-handler';
+import {
+  AuthError,
+  NotFoundError,
+  ValidationError,
+} from '@packages/error-handler';
 import imagekit from '@packages/libs/imagekit';
 import prisma from '@packages/libs/prisma';
 import { NextFunction, Request, Response } from 'express';
@@ -149,4 +153,110 @@ export const deleteProductImage = async (
   } catch (error) {
     return next(error);
   }
-}
+};
+
+// Create Product
+export const createProduct = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      title,
+      description,
+      detailDescription,
+      subCategory,
+      tags,
+      warranty,
+      slug,
+      brand,
+      cod,
+      category,
+      code,
+      colors = [],
+      sizes = [],
+      images = [],
+      videoUrl,
+      regularPrice,
+      salePrice,
+      stock,
+      customProperties = {},
+      customSpecifications = {},
+    } = req.body;
+
+    if (
+      !title ||
+      !slug ||
+      !description ||
+      !detailDescription ||
+      !category ||
+      !subCategory ||
+      !images ||
+      !tags ||
+      !salePrice ||
+      !regularPrice ||
+      !stock
+    ) {
+      return next(new ValidationError('Please fill all required fields'));
+    }
+
+    if (!req.seller?.id) {
+      return next(new AuthError('Only sellers can create products!'));
+    }
+
+    const slugChecking = await prisma.products.findUnique({
+      where: { slug },
+    });
+
+    if (slugChecking) {
+      return next(
+        new ValidationError('Slug already in use, please use a different slug')
+      );
+    }
+
+    const filteredImages = images
+      ?.filter((img: any) => img && img.fileId && img.fileUrl)
+      ?.map((img: any) => ({
+        fileId: img.fileId,
+        url: img.fileUrl,
+      }));
+    
+    console.log(filteredImages);
+
+    const product = await prisma.products.create({
+      data: {
+        title,
+        description,
+        detailDescription,
+        warranty,
+        cod,
+        slug,
+        shopId: req?.seller?.shopId!,
+        tags: Array.isArray(tags)
+          ? tags
+          : tags.split(',').map((tag: string) => tag.trim()),
+        brand,
+        videoUrl,
+        category,
+        subCategory,
+        colors: colors || [],
+        discountCodes: code.map((codeId: string) => codeId),
+        sizes: sizes || [],
+        stock: parseInt(stock, 10),
+        salePrice: parseFloat(salePrice),
+        regularPrice: parseFloat(regularPrice),
+        customProperties: customProperties || {},
+        customSpecifications: customSpecifications || {},
+        images: {
+          create: filteredImages,
+        },
+      },
+      include: { images: true },
+    });
+
+    return res.status(201).json({ success: true, product });
+  } catch (error) {
+    return next(error);
+  }
+};

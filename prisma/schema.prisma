@@ -9,13 +9,15 @@ datasource db {
 }
 
 model images {
-  id     String  @id @default(auto()) @map("_id") @db.ObjectId
-  fileId String
-  url    String
-  userId String? @unique @db.ObjectId
-  shopId String? @unique @db.ObjectId
-  users  users?  @relation(fields: [userId], references: [id])
-  shops  shops?  @relation(fields: [shopId], references: [id])
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  fileId    String
+  url       String
+  userId    String?   @unique @db.ObjectId
+  shopId    String?   @unique @db.ObjectId
+  users     users?    @relation(fields: [userId], references: [id])
+  shops     shops?    @relation(fields: [shopId], references: [id])
+  productId String?   @unique @db.ObjectId
+  products  products? @relation(fields: [productId], references: [id])
 }
 
 model users {
@@ -57,6 +59,7 @@ model shops {
   reviews      shopReviews[]
   sellerId     String        @unique @db.ObjectId
   sellers      sellers       @relation(fields: [sellerId], references: [id])
+  products     products[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -92,4 +95,44 @@ model discountCodes {
   sellerId  String   @db.ObjectId
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum productStatus {
+  ACTIVE
+  PENDING
+  DRAFT
+}
+
+model products {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  status               productStatus @default(ACTIVE)
+  title                String
+  slug                 String        @unique
+  category             String
+  subCategory          String
+  description          String
+  detailDescription    String
+  images               images[]
+  stock                Int
+  salePrice            Float
+  regularPrice         Float
+  ratings              Float         @default(0.0)
+  discountCodes        String[]      @unique @db.ObjectId
+  tags                 String[]
+  colors               String[]
+  sizes                String[]
+  cod                  Boolean?      @default(false)
+  brand                String?
+  warranty             String?
+  videoUrl             String?
+  customSpecifications Json?
+  customProperties     Json?
+  isDeleted            Boolean       @default(false)
+  startingDate         DateTime?
+  endingDate           DateTime?
+  createdAt            DateTime      @default(now())
+  deletedAt            DateTime?
+  updatedAt            DateTime      @updatedAt
+  shopId               String        @db.ObjectId
+  shop                 shops         @relation(fields: [shopId], references: [id])
 }

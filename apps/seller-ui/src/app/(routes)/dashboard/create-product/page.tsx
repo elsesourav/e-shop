@@ -6,6 +6,7 @@ import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import { ChevronRight, Wand, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import ColorSelector from 'packages/components/color-selector';
 import CustomProperties from 'packages/components/custom-properties';
 import CustomSpecifications from 'packages/components/custom-specifications';
@@ -14,6 +15,7 @@ import RichTextEditor from 'packages/components/rich-text-editor';
 import SizeSelector from 'packages/components/size-selector';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
 
 interface ImageInterface {
   fileId: string;
@@ -29,15 +31,17 @@ const Page = () => {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  const [openImageModal, setOpenImageModal] = useState(true);
+  const [openImageModal, setOpenImageModal] = useState(false);
   const [isChanged, setIsChanged] = useState(true);
   const [activeEffect, setActiveEffect] = useState<string | null>(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(
-    'https://ik.imagekit.io/elsesourav/products/es-product-1760144148787_O2B3AVlMr.jpg?updatedAt=1760144150990'
-  );
+  const [selectedImage, setSelectedImage] = useState('');
+  const [originalImage, setOriginalImage] = useState('');
+  const [processing, setProcessing] = useState(false);
   const [images, setImages] = useState<(ImageInterface | null)[]>([null]);
   const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['categories'],
@@ -71,8 +75,18 @@ const Page = () => {
     return selectedCategory ? subCategoriesData[selectedCategory] || [] : [];
   }, [selectedCategory, subCategoriesData]);
 
-  const onSubmit = (data: any) => {
-    console.log(data);
+  const onSubmit = async (data: any) => {
+    try {
+      setLoading(true);
+      await axiosInstance.post('/product/api/create-product', data);
+      router.push('/dashboard/all-products');
+      // console.log(res.data);
+    } catch (error: any) {
+      toast.error(error?.data?.message || 'Failed to create product');
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const convertToBase64 = (file: File): Promise<string> => {
@@ -144,6 +158,40 @@ const Page = () => {
     }
   };
 
+  const applyTransformation = async (effect: string) => {
+    if (!selectedImage || processing) return;
+
+    setProcessing(true);
+    setActiveEffect(effect);
+
+    try {
+      const baseUrl = originalImage || selectedImage.split('?')[0];
+      const transformedUrl = `${baseUrl}?tr=${effect}`;
+      setSelectedImage(transformedUrl);
+
+      if (!originalImage) {
+        setOriginalImage(baseUrl);
+      }
+    } catch (error) {
+      console.error('Error applying transformation:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleSelectImage = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setOriginalImage(imageUrl);
+    setActiveEffect(null); // Reset active effect when selecting a new image
+  };
+
+  const resetTransformation = () => {
+    if (originalImage) {
+      setSelectedImage(originalImage);
+      setActiveEffect(null);
+    }
+  };
+
   const handleSaveDraft = () => {};
 
   return (
@@ -178,7 +226,7 @@ const Page = () => {
               index={0}
               images={images}
               isImageUploading={isImageUploading}
-              setSelectedImage={setSelectedImage}
+              setSelectedImage={handleSelectImage}
               onImageChange={handleImageChange}
               onRemoveImage={handleRemoveImage}
             />
@@ -194,7 +242,7 @@ const Page = () => {
                 index={index + 1}
                 images={images}
                 isImageUploading={isImageUploading}
-                setSelectedImage={setSelectedImage}
+                setSelectedImage={handleSelectImage}
                 onImageChange={handleImageChange}
                 onRemoveImage={handleRemoveImage}
                 defaultImage={img?.fileUrl || null}
@@ -278,28 +326,28 @@ const Page = () => {
 
               <div className="mt-2">
                 <Input
-                  label="Slags *"
-                  placeholder="product-slag"
-                  {...register('slags', {
-                    required: 'Separate related product slags with a comma,',
+                  label="Slugs *"
+                  placeholder="product-slug"
+                  {...register('slug', {
+                    required: 'Separate related product slugs with a comma,',
                     pattern: {
                       value: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
                       message:
-                        'Invalid slags format! Use lowercase letters, numbers, and hyphens only.',
+                        'Invalid slugs format! Use lowercase letters, numbers, and hyphens only.',
                     },
                     minLength: {
                       value: 3,
-                      message: 'Slags must be at least 3 characters long.',
+                      message: 'Slugs must be at least 3 characters long.',
                     },
                     maxLength: {
                       value: 50,
-                      message: 'Slags cannot exceed 50 characters.',
+                      message: 'Slugs cannot exceed 50 characters.',
                     },
                   })}
                 />
-                {errors.slags && (
+                {errors.slug && (
                   <p className="text-red-500 text-xs mt-1">
-                    {errors.slags.message as string}
+                    {errors.slug.message as string}
                   </p>
                 )}
               </div>
@@ -638,21 +686,40 @@ const Page = () => {
             <div className="relative w-full h-[250px] flex justify-center items-center rounded-md overflow-hidden border border-gray-600">
               <Image
                 src={selectedImage || ''}
-                layout="fill"
+                fill
+                sizes="(max-width: 768px) 100vw, 450px"
+                className="object-contain"
                 alt="Image preview"
               />
             </div>
             {selectedImage && (
               <div className="mt-4 space-y-2">
-                <h3 className="text-white text-sm font-semibold">
-                  AI Enhancements
-                </h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-white text-sm font-semibold">
+                    AI Enhancements
+                  </h3>
+                  {activeEffect && (
+                    <button
+                      type="button"
+                      onClick={resetTransformation}
+                      className="text-xs text-blue-400 hover:text-blue-300 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3 max-h-[250px] overflow-auto">
-                  {enhancements?.map(({ label, effect}) => (
+                  {enhancements?.map(({ label, effect }) => (
                     <button
                       key={effect}
                       type="button"
-                      className={`p-2 rounded-md flex items-center gap-2 transition ${activeEffect === effect ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-500'} `}
+                      className={`p-2 rounded-md flex items-center gap-2 transition ${
+                        activeEffect === effect
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-500'
+                      } `}
+                      onClick={() => applyTransformation(effect)}
+                      disabled={processing}
                     >
                       <Wand size={18} /> {label}
                     </button>
