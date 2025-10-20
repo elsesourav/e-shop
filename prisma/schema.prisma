@@ -8,48 +8,80 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Image model - can belong to users, shops, or products
 model images {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   fileId    String
   url       String
-  userId    String?   @unique @db.ObjectId
-  shopId    String?   @unique @db.ObjectId
-  users     users?    @relation(fields: [userId], references: [id])
-  shops     shops?    @relation(fields: [shopId], references: [id])
-  productId String?   @unique @db.ObjectId
-  products  products? @relation(fields: [productId], references: [id])
+  userId    String?   @db.ObjectId
+  shopId    String?   @db.ObjectId
+  productId String?   @db.ObjectId
+  users     users?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shops     shops?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  products  products? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([productId])
 }
 
+// User model
 model users {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  email       String        @unique
-  password    String?
-  avatar      images?
-  following   String[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  shopReviews shopReviews[]
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  email          String           @unique
+  password       String?
+  avatar         images[]
+  following      String[]         @db.ObjectId
+  shopReviews    shopReviews[]
+  productReviews productReviews[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 }
 
+// Shop reviews
 model shopReviews {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  user      users    @relation(fields: [userId], references: [id])
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @db.ObjectId
   rating    Float
   reviews   String?
-  shopsId   String   @db.ObjectId
-  shops     shops?   @relation(fields: [shopsId], references: [id])
+  shopId    String   @db.ObjectId
+  shop      shops    @relation(fields: [shopId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([rating])
 }
 
+// Product reviews
+model productReviews {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+  rating    Float
+  review    String?
+  productId String   @db.ObjectId
+  product   products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([rating])
+}
+
+// Shop model
 model shops {
   id           String        @id @default(auto()) @map("_id") @db.ObjectId
   name         String        @unique
   description  String
   category     String
-  avatar       images?
+  avatar       images[]
   coverBanner  String?
   address      String
   openingHours String?
@@ -58,26 +90,31 @@ model shops {
   ratings      Float         @default(0.0)
   reviews      shopReviews[]
   sellerId     String        @unique @db.ObjectId
-  sellers      sellers       @relation(fields: [sellerId], references: [id])
+  seller       sellers       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   products     products[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  @@index([category])
+  @@index([ratings])
 }
 
+// Seller model
 model sellers {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  email     String   @unique
-  phone     String
-  country   String
-  password  String?
-  stripeId  String?  @unique
-  shop      shops?
-  shopsId   String?  @db.ObjectId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String          @unique
+  phone         String
+  country       String
+  password      String?
+  stripeId      String?         @unique
+  shop          shops?
+  discountCodes discountCodes[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 }
 
+// Site configuration
 model siteConfigs {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   categories    String[]
@@ -86,53 +123,79 @@ model siteConfigs {
   updatedAt     DateTime @updatedAt
 }
 
+// Discount codes
 model discountCodes {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  type      String
-  value     Float
-  code      String   @unique
-  sellerId  String   @db.ObjectId
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  type       String // e.g., "percentage", "fixed"
+  value      Float
+  code       String    @unique
+  sellerId   String    @db.ObjectId
+  seller     sellers   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  minAmount  Float?    @default(0) // Minimum order amount to apply discount
+  maxAmount  Float? // Maximum discount amount
+  usageLimit Int?      @default(0) // 0 means unlimited
+  usedCount  Int       @default(0)
+  expiresAt  DateTime?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([sellerId])
+  @@index([isActive])
 }
 
+// Product status enum
 enum productStatus {
   ACTIVE
   PENDING
   DRAFT
+  OUT_OF_STOCK
 }
 
+// Product model
 model products {
-  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
-  status               productStatus @default(ACTIVE)
+  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
+  status               productStatus    @default(ACTIVE)
   title                String
-  slug                 String        @unique
+  slug                 String           @unique
   category             String
   subCategory          String
   description          String
   detailDescription    String
-  images               images[]
   stock                Int
   salePrice            Float
   regularPrice         Float
-  ratings              Float         @default(0.0)
-  discountCodes        String[]      @unique @db.ObjectId
+  ratings              Float            @default(0.0)
+  images               images[]
+  reviews              productReviews[]
+  discountCodes        String[]         @db.ObjectId
   tags                 String[]
   colors               String[]
   sizes                String[]
-  cod                  Boolean?      @default(false)
+  cod                  Boolean          @default(false)
   brand                String?
   warranty             String?
   videoUrl             String?
   customSpecifications Json?
   customProperties     Json?
-  isDeleted            Boolean       @default(false)
+  isDeleted            Boolean          @default(false)
+  viewCount            Int              @default(0)
+  soldCount            Int              @default(0)
   startingDate         DateTime?
   endingDate           DateTime?
-  createdAt            DateTime      @default(now())
+  createdAt            DateTime         @default(now())
   deletedAt            DateTime?
-  updatedAt            DateTime      @updatedAt
-  shopId               String        @db.ObjectId
-  shop                 shops         @relation(fields: [shopId], references: [id])
+  updatedAt            DateTime         @updatedAt
+  shopId               String           @db.ObjectId
+  shop                 shops            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@index([category])
+  @@index([subCategory])
+  @@index([status])
+  @@index([ratings])
+  @@index([salePrice])
+  @@index([createdAt])
+  @@index([isDeleted])
 }

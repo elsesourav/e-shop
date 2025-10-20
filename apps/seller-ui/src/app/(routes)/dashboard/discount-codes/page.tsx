@@ -29,15 +29,23 @@ const Page = () => {
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {
-      name: '',
-      type: 'percentage',
-      value: 0.0,
-      code: '',
+      discountName: '',
+      discountType: 'percentage',
+      discountValue: 0.0,
+      discountCode: '',
+      minAmount: 0,
+      maxAmount: undefined,
+      usageLimit: 0,
+      expiresAt: '',
+      isActive: true,
     },
   });
+
+  const discountType = watch('discountType');
 
   const deleteDiscountCodeMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -56,7 +64,7 @@ const Page = () => {
         error?.response?.data?.message || 'Failed to delete discount code.'
       );
     },
-  })
+  });
 
   const createDiscountCodeMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -123,46 +131,97 @@ const Page = () => {
         {isLoading ? (
           <p className="text-gray-400 text-center">Loading Discount...</p>
         ) : (
-          <table className="w-full text-white">
-            <thead>
-              <tr className="border-b border-gray-700">
-                <th className="p-3 text-left">Title</th>
-                <th className="p-3 text-left">Type</th>
-                <th className="p-3 text-left">Value</th>
-                <th className="p-3 text-left">Code</th>
-                <th className="p-3 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {discountCodes?.map((discount: any) => (
-                <tr
-                  key={discount.id}
-                  className="border-b border-gray-700 hover:bg-blue-900 transition"
-                >
-                  <td className="p-3">{discount?.name}</td>
-                  <td className="p-3 capitalize">
-                    {discount.type === 'percentage'
-                      ? 'Percentage (%)'
-                      : 'Flat (₹)'}
-                  </td>
-                  <td className="p-3">
-                    {discount.type === 'percentage'
-                      ? `${discount.value}%`
-                      : `₹${discount.value}`}
-                  </td>
-                  <td className="p-3">{discount.code}</td>
-                  <td className="p-3 flex justify-center items-center">
-                    <button
-                      className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-lg transition"
-                      onClick={() => handleDiscountDelete(discount)}
-                    >
-                      <Trash size={18} />
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-white">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="p-3 text-left">Title</th>
+                  <th className="p-3 text-left">Code</th>
+                  <th className="p-3 text-left">Type</th>
+                  <th className="p-3 text-left">Value</th>
+                  <th className="p-3 text-left">Min Order</th>
+                  <th className="p-3 text-left">Usage</th>
+                  <th className="p-3 text-left">Status</th>
+                  <th className="p-3 text-center">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {discountCodes?.map((discount: any) => {
+                  const isExpired =
+                    discount.expiresAt &&
+                    new Date(discount.expiresAt) < new Date();
+                  const isLimitReached =
+                    discount.usageLimit &&
+                    discount.usageLimit > 0 &&
+                    discount.usedCount >= discount.usageLimit;
+
+                  return (
+                    <tr
+                      key={discount.id}
+                      className="border-b border-gray-700 hover:bg-blue-900 transition"
+                    >
+                      <td className="p-3">{discount?.name}</td>
+                      <td className="p-3 font-mono text-sm">{discount.code}</td>
+                      <td className="p-3 capitalize">
+                        {discount.type === 'percentage'
+                          ? 'Percentage'
+                          : 'Fixed'}
+                      </td>
+                      <td className="p-3">
+                        {discount.type === 'percentage'
+                          ? `${discount.value}%`
+                          : `₹${discount.value}`}
+                        {discount.maxAmount && (
+                          <span className="text-xs text-gray-400 block">
+                            Max: ₹{discount.maxAmount}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        {discount.minAmount > 0
+                          ? `₹${discount.minAmount}`
+                          : 'None'}
+                      </td>
+                      <td className="p-3">
+                        {discount.usageLimit > 0
+                          ? `${discount.usedCount || 0}/${discount.usageLimit}`
+                          : `${discount.usedCount || 0}/∞`}
+                      </td>
+                      <td className="p-3">
+                        {!discount.isActive ? (
+                          <span className="text-gray-500 text-xs">
+                            Inactive
+                          </span>
+                        ) : isExpired ? (
+                          <span className="text-red-500 text-xs">Expired</span>
+                        ) : isLimitReached ? (
+                          <span className="text-orange-500 text-xs">
+                            Limit Reached
+                          </span>
+                        ) : (
+                          <span className="text-green-500 text-xs">Active</span>
+                        )}
+                        {discount.expiresAt && !isExpired && (
+                          <span className="text-xs text-gray-400 block">
+                            Until:{' '}
+                            {new Date(discount.expiresAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 flex justify-center items-center">
+                        <button
+                          className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded-lg transition"
+                          onClick={() => handleDiscountDelete(discount)}
+                        >
+                          <Trash size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {!isLoading && discountCodes?.length === 0 && (
@@ -193,11 +252,13 @@ const Page = () => {
               <div className="mt-2">
                 <Input
                   label="Title (Public Name)"
-                  {...register('name', { required: 'Title is required' })}
+                  {...register('discountName', {
+                    required: 'Title is required',
+                  })}
                 />
-                {errors.name && (
+                {errors.discountName && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.name.message}
+                    {errors.discountName.message}
                   </p>
                 )}
               </div>
@@ -209,7 +270,7 @@ const Page = () => {
                 </label>
                 <Controller
                   control={control}
-                  name="type"
+                  name="discountType"
                   render={({ field }) => (
                     <select
                       {...field}
@@ -220,9 +281,9 @@ const Page = () => {
                     </select>
                   )}
                 />
-                {errors.type && (
+                {errors.discountType && (
                   <p className="text-red-500 text-xs mt-1">
-                    {errors.type.message}
+                    {errors.discountType.message}
                   </p>
                 )}
               </div>
@@ -233,13 +294,13 @@ const Page = () => {
                   label="Discount Value"
                   type="number"
                   min={1}
-                  {...register('value', {
+                  {...register('discountValue', {
                     required: 'Value is required',
                   })}
                 />
-                {errors.value && (
+                {errors.discountValue && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.value.message}
+                    {errors.discountValue.message}
                   </p>
                 )}
               </div>
@@ -248,13 +309,110 @@ const Page = () => {
               <div className="mt-2">
                 <Input
                   label="Discount Code"
-                  {...register('code', { required: 'Code is required' })}
+                  placeholder="SAVE20"
+                  {...register('discountCode', {
+                    required: 'Code is required',
+                  })}
                 />
-                {errors.code && (
+                {errors.discountCode && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.code.message}
+                    {errors.discountCode.message}
                   </p>
                 )}
+              </div>
+
+              {/* Min Amount */}
+              <div className="mt-2">
+                <Input
+                  label="Minimum Order Amount (₹)"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0"
+                  {...register('minAmount', {
+                    valueAsNumber: true,
+                    min: { value: 0, message: 'Cannot be negative' },
+                  })}
+                />
+                {errors.minAmount && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.minAmount.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Max Amount (for percentage discounts) */}
+              {discountType === 'percentage' && (
+                <div className="mt-2">
+                  <Input
+                    label="Maximum Discount Amount (₹) - Optional"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="No limit"
+                    {...register('maxAmount', {
+                      valueAsNumber: true,
+                      min: { value: 0, message: 'Cannot be negative' },
+                    })}
+                  />
+                  {errors.maxAmount && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.maxAmount.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Usage Limit */}
+              <div className="mt-2">
+                <Input
+                  label="Usage Limit (0 = Unlimited)"
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...register('usageLimit', {
+                    valueAsNumber: true,
+                    min: { value: 0, message: 'Cannot be negative' },
+                  })}
+                />
+                {errors.usageLimit && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.usageLimit.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Expiry Date */}
+              <div className="mt-2">
+                <label className="block font-semibold text-gray-300 mb-1">
+                  Expiry Date (Optional)
+                </label>
+                <input
+                  type="datetime-local"
+                  {...register('expiresAt')}
+                  className="w-full p-3 outline-none bg-transparent rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {errors.expiresAt && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.expiresAt.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Active Status */}
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  {...register('isActive')}
+                  className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-700 rounded focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="isActive"
+                  className="text-gray-300 cursor-pointer"
+                >
+                  Active (Make available immediately)
+                </label>
               </div>
 
               <button
@@ -282,17 +440,17 @@ const Page = () => {
         </div>
       )}
 
-      {
-        showDeleteModal && selectedDiscount && (
-          <DeleteDiscountCodeModal
-            discount={selectedDiscount}
-            onClose={() => {
-              setShowDeleteModal(false);
-            }}
-            onConfirm={() => deleteDiscountCodeMutation.mutate(selectedDiscount.id)}
-          />
-        )
-      }
+      {showDeleteModal && selectedDiscount && (
+        <DeleteDiscountCodeModal
+          discount={selectedDiscount}
+          onClose={() => {
+            setShowDeleteModal(false);
+          }}
+          onConfirm={() =>
+            deleteDiscountCodeMutation.mutate(selectedDiscount.id)
+          }
+        />
+      )}
     </div>
   );
 };

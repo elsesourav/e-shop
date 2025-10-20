@@ -61,7 +61,9 @@ const Page = () => {
     useQuery({
       queryKey: ['shop-discounts'],
       queryFn: async () => {
-        const res = await axiosInstance.get('/product/api/get-discount-codes');
+        const res = await axiosInstance.get('/product/api/get-discount-codes', {
+          params: { activeOnly: 'true' }, // Only fetch active discount codes
+        });
         return res?.data?.discountCodes || [];
       },
     });
@@ -515,7 +517,6 @@ const Page = () => {
                   label="Product Video URL"
                   placeholder="https://www.youtube.com/watch?v=example"
                   {...register('videoUrl', {
-                    required: 'Video URL is required',
                     pattern: {
                       value:
                         /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/,
@@ -625,42 +626,74 @@ const Page = () => {
                   htmlFor="discountCodes"
                   className="block font-semibold text-gray-300 mb-1"
                 >
-                  Discount Code (optional)
+                  Discount Codes (optional)
                 </label>
 
                 {isLoadingDiscountCodes ? (
                   <p className="text-gray-400 text-center">
                     Loading Discount Codes...
                   </p>
+                ) : discountCodes.length === 0 ? (
+                  <p className="text-gray-500 text-sm">
+                    No active discount codes available. Create one first!
+                  </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {discountCodes?.map((discount: any) => (
-                      <button
-                        key={discount.id}
-                        type="button"
-                        className={`px-3 py-1 rounded-md text-sm border transition ${
-                          watch('discountCode')?.includes(discount.id)
-                            ? 'bg-blue-600 text-white border-blue-400'
-                            : 'bg-gray-800 text-gray-300 border-gray-600 hover:border-gray-700'
-                        }`}
-                        onClick={() => {
-                          const currentSelection = watch('discountCode') || [];
-                          const updatedSelection = currentSelection.includes(
-                            discount.id
-                          )
-                            ? currentSelection.filter(
-                                (id: string) => id !== discount.id
-                              )
-                            : [...currentSelection, discount.id];
-                          setValue('discountCode', updatedSelection);
-                        }}
-                      >
-                        {discount.name}{' '}
-                        {discount.type === 'percentage'
-                          ? `(${discount.value}%)`
-                          : `(Flat ₹${discount.value})`}
-                      </button>
-                    ))}
+                    {discountCodes?.map((discount: any) => {
+                      const isExpired =
+                        discount.expiresAt &&
+                        new Date(discount.expiresAt) < new Date();
+                      const isLimitReached =
+                        discount.usageLimit &&
+                        discount.usageLimit > 0 &&
+                        discount.usedCount >= discount.usageLimit;
+                      const isDisabled =
+                        !discount.isActive || isExpired || isLimitReached;
+
+                      return (
+                        <button
+                          key={discount.id}
+                          type="button"
+                          disabled={isDisabled}
+                          className={`px-3 py-1 rounded-md text-sm border transition ${
+                            watch('discountCodes')?.includes(discount.id)
+                              ? 'bg-blue-600 text-white border-blue-400'
+                              : isDisabled
+                              ? 'bg-gray-900 text-gray-600 border-gray-700 cursor-not-allowed'
+                              : 'bg-gray-800 text-gray-300 border-gray-600 hover:border-gray-400'
+                          }`}
+                          onClick={() => {
+                            if (isDisabled) return;
+                            const currentSelection =
+                              watch('discountCodes') || [];
+                            const updatedSelection = currentSelection.includes(
+                              discount.id
+                            )
+                              ? currentSelection.filter(
+                                  (id: string) => id !== discount.id
+                                )
+                              : [...currentSelection, discount.id];
+                            setValue('discountCodes', updatedSelection);
+                          }}
+                          title={
+                            isExpired
+                              ? 'Expired'
+                              : isLimitReached
+                              ? 'Usage limit reached'
+                              : !discount.isActive
+                              ? 'Inactive'
+                              : ''
+                          }
+                        >
+                          {discount.code} - {discount.name}{' '}
+                          {discount.type === 'percentage'
+                            ? `(${discount.value}% off)`
+                            : `(₹${discount.value} off)`}
+                          {isExpired && ' 🔴'}
+                          {isLimitReached && ' ⚠️'}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

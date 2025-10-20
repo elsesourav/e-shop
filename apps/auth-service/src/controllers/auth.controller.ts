@@ -1,4 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { AuthError, ValidationError } from '@packages/error-handler';
+import prisma from '@packages/libs/prisma';
+import bcrypt from 'bcryptjs';
+import { NextFunction, Request, Response } from 'express';
+import jwt, { JsonWebTokenError } from 'jsonwebtoken';
+import Stripe from 'stripe';
 import {
   checkOtpRestrictions,
   handleForgotPassword,
@@ -8,12 +13,7 @@ import {
   validateRegistrationData,
   verifyOtp,
 } from '../utils/auth.helper';
-import prisma from '@packages/libs/prisma';
-import { AuthError, ValidationError } from '@packages/error-handler';
-import bcrypt from 'bcryptjs';
-import jwt, { JsonWebTokenError } from 'jsonwebtoken';
 import { setCookie } from '../utils/cookies/setCookie';
-import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY! as string, {
   apiVersion: '2025-09-30.clover',
@@ -113,8 +113,8 @@ export const userLogin = async (
       return next(new AuthError('Invalid email or password!'));
     }
 
-    res.clearCookie("refresh_token_seller");
-    res.clearCookie("access_token_seller");
+    res.clearCookie('refresh_token_seller');
+    res.clearCookie('access_token_seller');
 
     const accessToken = jwt.sign(
       { id: user.id, role: 'user' },
@@ -429,8 +429,8 @@ export const sellerLogin = async (
       return next(new AuthError('Invalid email or password!'));
     }
 
-    res.clearCookie("refresh_token");
-    res.clearCookie("access_token");
+    res.clearCookie('refresh_token');
+    res.clearCookie('access_token');
 
     const accessToken = jwt.sign(
       { id: seller.id, role: 'seller' },
@@ -485,7 +485,7 @@ export const refreshToken = async (
     const refreshToken =
       req.cookies.refresh_token || req.cookies.refresh_token_seller;
     if (!refreshToken) {
-      return new ValidationError('Unauthorized! Please login again.');
+      return next(new ValidationError('Unauthorized! Please login again.'));
     }
 
     const decoded = jwt.verify(
@@ -493,21 +493,42 @@ export const refreshToken = async (
       process.env.JWT_REFRESH_TOKEN_SECRET as string
     ) as { id: string; role: string };
 
-    if (!decoded || !decoded.id || decoded.role) {
-      return new JsonWebTokenError('Forbidden Invalid refresh token!');
+    // Fixed: Should check if role doesn't exist, not if it exists
+    if (!decoded || !decoded.id || !decoded.role) {
+      return next(new JsonWebTokenError('Forbidden Invalid refresh token!'));
     }
 
     let account;
     if (decoded.role === 'user') {
-      account = await prisma.users.findUnique({ where: { id: decoded.id } });
+      account = await prisma.users.findUnique({
+        where: { id: decoded.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     } else if (decoded.role === 'seller') {
-      account = await prisma.sellers.findUnique({ where: { id: decoded.id } });
+      account = await prisma.sellers.findUnique({
+        where: { id: decoded.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          country: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     } else {
-      return new AuthError('Forbidden Invalid role!');
+      return next(new AuthError('Forbidden Invalid role!'));
     }
 
     if (!account) {
-      return new AuthError(`Forbidden ${decoded.role} not found!`);
+      return next(new AuthError(`Forbidden ${decoded.role} not found!`));
     }
 
     const newAccessToken = jwt.sign(
@@ -522,7 +543,7 @@ export const refreshToken = async (
     setCookie(res, accessToken, newAccessToken);
 
     req.role = decoded.role;
-    res.status(201).json({ success: true });
+    res.status(200).json({ success: true });
   } catch (error) {
     return next(error);
   }
