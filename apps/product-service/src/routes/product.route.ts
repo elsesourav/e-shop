@@ -6,13 +6,17 @@ import {
   createProductReview,
   createShopReview,
   deleteDiscountCode,
+  deleteDraftProduct,
   deleteProductImage,
   getCategories,
   getDiscountCodes,
+  getDraftProducts,
   getProductReviews,
   getShopReviews,
   incrementDiscountUsage,
   incrementProductView,
+  publishDraftProduct,
+  saveProductDraft,
   updateDiscountCode,
   uploadProductImage,
   validateDiscountCode,
@@ -35,6 +39,12 @@ router.post('/increment-discount-usage', incrementDiscountUsage);
 router.post('/create-product', isAuthenticated, createProduct);
 router.post('/upload-product-image', isAuthenticated, uploadProductImage);
 router.delete('/delete-product-image', isAuthenticated, deleteProductImage);
+
+// product drafts
+router.post('/save-product-draft', isAuthenticated, saveProductDraft);
+router.get('/get-draft-products', isAuthenticated, getDraftProducts);
+router.delete('/delete-draft-product/:id', isAuthenticated, deleteDraftProduct);
+router.put('/publish-draft-product/:id', isAuthenticated, publishDraftProduct);
 
 // product reviews
 router.post('/create-product-review', isAuthenticated, createProductReview);

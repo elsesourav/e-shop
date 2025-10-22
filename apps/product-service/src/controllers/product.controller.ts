@@ -726,3 +726,288 @@ export const incrementProductView = async (
     return next(error);
   }
 };
+
+// Save product as draft
+export const saveProductDraft = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      title,
+      description,
+      detailDescription,
+      subCategory,
+      tags,
+      warranty,
+      slug,
+      brand,
+      cod,
+      category,
+      discountCodes,
+      colors = [],
+      sizes = [],
+      images = [],
+      videoUrl,
+      regularPrice,
+      salePrice,
+      stock,
+      customProperties = {},
+      customSpecifications = {},
+    } = req.body;
+
+    if (!title || !slug) {
+      return next(
+        new ValidationError('Title and slug are required to save draft')
+      );
+    }
+
+    if (!req.seller?.id) {
+      return next(new AuthError('Only sellers can save product drafts!'));
+    }
+
+    // Get seller's shop
+    const seller = await prisma.sellers.findUnique({
+      where: { id: req.seller.id },
+      include: { shop: true },
+    });
+
+    if (!seller?.shop) {
+      return next(
+        new ValidationError(
+          'Please create a shop before saving product drafts!'
+        )
+      );
+    }
+
+    // Check if draft with same slug exists for this shop
+    const existingDraft = await prisma.products.findFirst({
+      where: {
+        slug,
+        shopId: seller.shop.id,
+        status: 'DRAFT',
+      },
+    });
+
+    const filteredImages = (images || [])
+      .filter((img: any) => img && img.fileId && img.fileUrl)
+      .map((img: any) => ({
+        fileId: img.fileId,
+        url: img.fileUrl,
+      }));
+
+    const productData = {
+      title,
+      description: description || '',
+      detailDescription: detailDescription || '',
+      warranty: warranty || '',
+      cod: cod === 'yes',
+      slug,
+      tags: Array.isArray(tags)
+        ? tags
+        : tags
+        ? tags.split(',').map((tag: string) => tag.trim())
+        : [],
+      brand: brand || '',
+      videoUrl: videoUrl || '',
+      category: category || '',
+      subCategory: subCategory || '',
+      colors: colors || [],
+      discountCodes: discountCodes?.map((codeId: string) => codeId) || [],
+      sizes: sizes || [],
+      stock: stock ? parseInt(stock, 10) : 0,
+      salePrice: salePrice ? parseFloat(salePrice) : 0,
+      regularPrice: regularPrice ? parseFloat(regularPrice) : 0,
+      customProperties: customProperties || {},
+      customSpecifications: customSpecifications || {},
+      status: 'DRAFT' as const,
+      shop: {
+        connect: {
+          id: seller.shop.id,
+        },
+      },
+    };
+
+    let product;
+
+    if (existingDraft) {
+      // Update existing draft
+      product = await prisma.products.update({
+        where: { id: existingDraft.id },
+        data: {
+          ...productData,
+          images: {
+            deleteMany: {},
+            create: filteredImages,
+          },
+        },
+        include: { images: true },
+      });
+    } else {
+      // Create new draft
+      product = await prisma.products.create({
+        data: {
+          ...productData,
+          images: {
+            create: filteredImages,
+          },
+        },
+        include: { images: true },
+      });
+    }
+
+    return res.status(201).json({ success: true, product });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get draft products for seller
+export const getDraftProducts = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.seller?.id) {
+      return next(new AuthError('Only sellers can access drafts!'));
+    }
+
+    const seller = await prisma.sellers.findUnique({
+      where: { id: req.seller.id },
+      include: { shop: true },
+    });
+
+    if (!seller?.shop) {
+      return res.status(200).json({ success: true, drafts: [] });
+    }
+
+    const drafts = await prisma.products.findMany({
+      where: {
+        shopId: seller.shop.id,
+        status: 'DRAFT',
+      },
+      include: {
+        images: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return res.status(200).json({ success: true, drafts });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Delete draft product
+export const deleteDraftProduct = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const sellerId = req.seller?.id;
+
+    if (!sellerId) {
+      return next(new AuthError('Only sellers can delete drafts!'));
+    }
+
+    const product = await prisma.products.findUnique({
+      where: { id },
+      include: { shop: true },
+    });
+
+    if (!product) {
+      return next(new NotFoundError('Draft not found'));
+    }
+
+    if (product.shop.sellerId !== sellerId) {
+      return next(
+        new ValidationError('You are not authorized to delete this draft')
+      );
+    }
+
+    if (product.status !== 'DRAFT') {
+      return next(
+        new ValidationError('Only draft products can be deleted this way')
+      );
+    }
+
+    await prisma.products.delete({ where: { id } });
+
+    return res
+      .status(200)
+      .json({ success: true, message: 'Draft deleted successfully' });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Publish draft product
+export const publishDraftProduct = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const sellerId = req.seller?.id;
+
+    if (!sellerId) {
+      return next(new AuthError('Only sellers can publish drafts!'));
+    }
+
+    const product = await prisma.products.findUnique({
+      where: { id },
+      include: { shop: true },
+    });
+
+    if (!product) {
+      return next(new NotFoundError('Draft not found'));
+    }
+
+    if (product.shop.sellerId !== sellerId) {
+      return next(
+        new ValidationError('You are not authorized to publish this draft')
+      );
+    }
+
+    if (product.status !== 'DRAFT') {
+      return next(new ValidationError('Product is not a draft'));
+    }
+
+    // Validate required fields for publishing
+    if (
+      !product.description ||
+      !product.detailDescription ||
+      !product.category ||
+      !product.subCategory
+    ) {
+      return next(
+        new ValidationError(
+          'Please complete all required fields before publishing'
+        )
+      );
+    }
+
+    const publishedProduct = await prisma.products.update({
+      where: { id },
+      data: {
+        status: 'ACTIVE',
+      },
+      include: { images: true },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Product published successfully',
+      product: publishedProduct,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

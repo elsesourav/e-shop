@@ -29,10 +29,9 @@ const Page = () => {
     watch,
     setValue,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
   } = useForm();
   const [openImageModal, setOpenImageModal] = useState(false);
-  const [isChanged, setIsChanged] = useState(true);
   const [activeEffect, setActiveEffect] = useState<string | null>(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [selectedImage, setSelectedImage] = useState('');
@@ -40,6 +39,7 @@ const Page = () => {
   const [processing, setProcessing] = useState(false);
   const [images, setImages] = useState<(ImageInterface | null)[]>([null]);
   const [loading, setLoading] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const router = useRouter();
 
@@ -81,13 +81,38 @@ const Page = () => {
     try {
       setLoading(true);
       await axiosInstance.post('/product/api/create-product', data);
+      toast.success('Product created successfully!');
       router.push('/dashboard/all-products');
-      // console.log(res.data);
     } catch (error: any) {
-      toast.error(error?.data?.message || 'Failed to create product');
+      toast.error(error?.response?.data?.message || 'Failed to create product');
       console.log(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    try {
+      setSavingDraft(true);
+      const formData = watch();
+
+      // Validate required fields for draft
+      if (!formData.title || !formData.slug) {
+        toast.error('Title and Slug are required to save draft');
+        return;
+      }
+
+      // Save draft to backend
+      await axiosInstance.post('/product/api/save-product-draft', formData);
+      toast.success('Draft saved successfully!');
+
+      // Optionally redirect to drafts page
+      // router.push('/dashboard/drafts');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Failed to save draft');
+      console.log(error);
+    } finally {
+      setSavingDraft(false);
     }
   };
 
@@ -193,8 +218,6 @@ const Page = () => {
       setActiveEffect(null);
     }
   };
-
-  const handleSaveDraft = () => {};
 
   return (
     <form
@@ -765,13 +788,16 @@ const Page = () => {
       )}
 
       <div className="mt-6 flex justify-end gap-3">
-        {isChanged && (
+        {isDirty && (
           <button
             type="button"
             onClick={handleSaveDraft}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition"
+            disabled={savingDraft}
+            className={`px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition ${
+              savingDraft ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            Save Draft
+            {savingDraft ? 'Saving...' : 'Save Draft'}
           </button>
         )}
         <button
