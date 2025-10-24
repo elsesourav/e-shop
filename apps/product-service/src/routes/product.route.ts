@@ -8,10 +8,13 @@ import {
   deleteDiscountCode,
   deleteDraftProduct,
   deleteProductImage,
+  getAllProducts,
   getCategories,
   getDiscountCodes,
   getDraftProducts,
+  getProductById,
   getProductReviews,
+  getRelatedProducts,
   getShopReviews,
   incrementDiscountUsage,
   incrementProductView,
@@ -27,6 +30,11 @@ const router: Router = express.Router();
 // product categories
 router.get('/get-categories', getCategories);
 
+// Get all products (public - for customers)
+router.get('/get-all-products', getAllProducts);
+router.get('/get-product/:identifier', getProductById); // Get by ID or slug
+router.get('/get-related-products/:productId', getRelatedProducts);
+
 // discount codes
 router.post('/create-discount-code', isAuthenticated, createDiscountCode);
 router.get('/get-discount-codes', isAuthenticated, getDiscountCodes);
@@ -36,9 +44,11 @@ router.post('/validate-discount-code', validateDiscountCode);
 router.post('/increment-discount-usage', incrementDiscountUsage);
 
 // product images
-router.post('/create-product', isAuthenticated, createProduct);
 router.post('/upload-product-image', isAuthenticated, uploadProductImage);
 router.delete('/delete-product-image', isAuthenticated, deleteProductImage);
+
+// create product
+router.post('/create-product', isAuthenticated, createProduct);
 
 // product drafts
 router.post('/save-product-draft', isAuthenticated, saveProductDraft);
