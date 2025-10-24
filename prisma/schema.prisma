@@ -97,6 +97,7 @@ model shops {
 
   @@index([category])
   @@index([ratings])
+  @@index([createdAt])
 }
 
 // Seller model
@@ -143,6 +144,8 @@ model discountCodes {
 
   @@index([sellerId])
   @@index([isActive])
+  @@index([expiresAt])
+  @@index([sellerId, isActive])
 }
 
 // Product status enum
@@ -197,5 +200,13 @@ model products {
   @@index([ratings])
   @@index([salePrice])
   @@index([createdAt])
+  @@index([updatedAt])
   @@index([isDeleted])
+  @@index([stock])
+  @@index([viewCount])
+  @@index([soldCount])
+  @@index([shopId, isDeleted])
+  @@index([shopId, stock])
+  @@index([shopId, isDeleted, stock])
+  @@index([title])
 }

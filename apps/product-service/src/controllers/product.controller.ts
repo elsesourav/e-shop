@@ -490,6 +490,52 @@ export const createProduct = async (
   }
 };
 
+// Delete Product (Soft Delete)
+export const deleteProduct = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const sellerId = req.seller?.id;
+
+    if (!sellerId) {
+      return next(new AuthError('Only sellers can delete products!'));
+    }
+
+    const product = await prisma.products.findUnique({
+      where: { id },
+      include: { shop: true },
+    });
+
+    if (!product) {
+      return next(new NotFoundError('Product not found'));
+    }
+
+    if (product.shop.sellerId !== sellerId) {
+      return next(
+        new ValidationError('You are not authorized to delete this product')
+      );
+    }
+
+    // Soft delete - set isDeleted to true
+    await prisma.products.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+      },
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: 'Product deleted successfully' });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 // Save product as draft
 export const saveProductDraft = async (
   req: any,
@@ -775,22 +821,214 @@ export const publishDraftProduct = async (
   }
 };
 
-// // get logged in seller products
-// export const getShopProducts = async (
-//   req: any,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const products = await prisma.products.findMany({
-//       where: { shop: { sellerId: req.seller?.id } },
-//       include: { images: true },
-//     });
-//     return res.status(200).json({ success: true, products });
-//   } catch (error) {
-//     return next(error);
-//   }
-// };
+// Get shop product stats (Total, In Stock, Low Stock, Out of Stock)
+export const getShopProductStats = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.seller?.id) {
+      return next(new AuthError('Only sellers can access shop product stats!'));
+    }
+
+    // Base where clause for all products
+    const where: any = {
+      shop: { sellerId: req.seller.id },
+      isDeleted: false,
+    };
+
+    // Optimized parallel aggregation queries
+    const [total, inStock, lowStock, outOfStock] = await Promise.all([
+      // Total products
+      prisma.products.count({ where }),
+
+      // In stock (stock > 0)
+      prisma.products.count({
+        where: {
+          ...where,
+          stock: { gt: 0 },
+        },
+      }),
+
+      // Low stock (0 < stock < 10)
+      prisma.products.count({
+        where: {
+          ...where,
+          stock: { gt: 0, lt: 10 },
+        },
+      }),
+
+      // Out of stock (stock = 0)
+      prisma.products.count({
+        where: {
+          ...where,
+          stock: 0,
+        },
+      }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      stats: {
+        total,
+        inStock,
+        lowStock,
+        outOfStock,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get logged in seller products with pagination, search, and filters
+export const getShopProducts = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.seller?.id) {
+      return next(new AuthError('Only sellers can access shop products!'));
+    }
+
+    const {
+      page = '1',
+      limit = '20',
+      search,
+      sortBy = 'updatedAt',
+      order = 'desc',
+      status,
+      category,
+      subCategory,
+      stockStatus,
+    } = req.query;
+
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = Math.min(parseInt(limit as string, 10), 100); // Max 100 items per page
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build where clause for filtered products
+    const where: any = {
+      shop: { sellerId: req.seller.id },
+      isDeleted: false,
+    };
+
+    // Search filter (by title, slug, category, subcategory)
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: 'insensitive' } },
+        { slug: { contains: search as string, mode: 'insensitive' } },
+        { category: { contains: search as string, mode: 'insensitive' } },
+        { subCategory: { contains: search as string, mode: 'insensitive' } },
+        { tags: { has: search as string } },
+      ];
+    }
+
+    // Stock status filter
+    if (stockStatus) {
+      if (stockStatus === 'in-stock') {
+        where.stock = { gt: 0 };
+      } else if (stockStatus === 'low-stock') {
+        where.stock = { gt: 0, lt: 10 };
+      } else if (stockStatus === 'out-of-stock') {
+        where.stock = 0;
+      }
+    }
+
+    // Status filter
+    if (status) {
+      where.status = status as string;
+    }
+
+    // Category filter
+    if (category) {
+      where.category = category as string;
+    }
+
+    // Subcategory filter
+    if (subCategory) {
+      where.subCategory = subCategory as string;
+    }
+
+    // Build orderBy clause
+    const orderBy: any = {};
+    const sortField = sortBy as string;
+    const sortOrder = order as string;
+
+    // Valid sort fields for seller products
+    const validSortFields = [
+      'title',
+      'salePrice',
+      'updatedAt',
+      'createdAt',
+      'ratings',
+      'stock',
+      'viewCount',
+      'soldCount',
+    ];
+
+    if (validSortFields.includes(sortField)) {
+      orderBy[sortField] = sortOrder === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.updatedAt = 'desc'; // Default sort
+    }
+
+    // Fetch products with pagination
+    const [products, totalCount] = await Promise.all([
+      prisma.products.findMany({
+        where,
+        include: {
+          images: true,
+          shop: {
+            select: {
+              id: true,
+              name: true,
+              ratings: true,
+            },
+          },
+          reviews: {
+            select: {
+              id: true,
+              rating: true,
+              review: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 5,
+          },
+        },
+        orderBy,
+        skip,
+        take: limitNum,
+      }),
+      prisma.products.count({ where }),
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    return res.status(200).json({
+      success: true,
+      products,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalProducts: totalCount,
+        limit: limitNum,
+        hasNextPage,
+        hasPrevPage,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
 
 // Get all products (public - for customers)
 export const getAllProducts = async (

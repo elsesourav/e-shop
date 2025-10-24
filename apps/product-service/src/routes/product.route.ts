@@ -7,6 +7,7 @@ import {
   createShopReview,
   deleteDiscountCode,
   deleteDraftProduct,
+  deleteProduct,
   deleteProductImage,
   getAllProducts,
   getCategories,
@@ -15,6 +16,8 @@ import {
   getProductById,
   getProductReviews,
   getRelatedProducts,
+  getShopProducts,
+  getShopProductStats,
   getShopReviews,
   incrementDiscountUsage,
   incrementProductView,
@@ -49,6 +52,14 @@ router.delete('/delete-product-image', isAuthenticated, deleteProductImage);
 
 // create product
 router.post('/create-product', isAuthenticated, createProduct);
+
+// get seller's shop products
+router.get('/get-shop-products', isAuthenticated, getShopProducts);
+// get seller's shop product stats
+router.get('/get-shop-product-stats', isAuthenticated, getShopProductStats);
+
+// delete product (soft delete)
+router.put('/delete-product/:id', isAuthenticated, deleteProduct);
 
 // product drafts
 router.post('/save-product-draft', isAuthenticated, saveProductDraft);
