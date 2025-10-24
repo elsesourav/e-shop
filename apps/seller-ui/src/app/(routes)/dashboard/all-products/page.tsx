@@ -5,6 +5,8 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import DeleteConfirmationModal from 'apps/seller-ui/src/shared/components/models/delete.confirmation.model';
+import RecoverConfirmationModal from 'apps/seller-ui/src/shared/components/models/recover.confirmation.model';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import {
   BarChart,
@@ -13,6 +15,8 @@ import {
   Eye,
   Pencil,
   Plus,
+  RefreshCw,
+  RotateCcw,
   Search,
   Star,
   Trash,
@@ -31,6 +35,8 @@ const fetchProducts = async (params: {
   sortBy?: string;
   order?: string;
   stockStatus?: string;
+  showDeleted?: boolean;
+  status?: string;
 }) => {
   const queryParams = new URLSearchParams();
   queryParams.append('page', params.page.toString());
@@ -39,6 +45,8 @@ const fetchProducts = async (params: {
   if (params.sortBy) queryParams.append('sortBy', params.sortBy);
   if (params.order) queryParams.append('order', params.order);
   if (params.stockStatus) queryParams.append('stockStatus', params.stockStatus);
+  if (params.showDeleted) queryParams.append('showDeleted', 'true');
+  if (params.status) queryParams.append('status', params.status);
 
   const res = await axiosInstance.get(
     `/product/api/get-shop-products?${queryParams.toString()}`
@@ -59,6 +67,8 @@ const ProductList = () => {
   const [sortBy, setSortBy] = useState<string>('title');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [stockStatus, setStockStatus] = useState<string>('');
+  const [showDeleted, setShowDeleted] = useState<boolean>(false);
+  const [productStatus, setProductStatus] = useState<string>('');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -68,6 +78,7 @@ const ProductList = () => {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [showRecoverModal, setShowRecoverModal] = useState<boolean>(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const queryClient = useQueryClient();
 
@@ -96,6 +107,8 @@ const ProductList = () => {
       sortBy,
       sortOrder,
       stockStatus,
+      showDeleted,
+      productStatus,
     ],
     queryFn: () =>
       fetchProducts({
@@ -105,6 +118,8 @@ const ProductList = () => {
         sortBy,
         order: sortOrder,
         stockStatus,
+        showDeleted,
+        status: productStatus,
       }),
     staleTime: 2 * 60 * 1000, // 2 minutes
     placeholderData: (previousData) => previousData, // Keep previous data while fetching
@@ -153,6 +168,31 @@ const ProductList = () => {
     setCurrentPage(1);
   };
 
+  // Handle product status change
+  const handleProductStatusChange = (newStatus: string) => {
+    if (newStatus === 'DELETED') {
+      setShowDeleted(true);
+      setProductStatus('');
+    } else {
+      setShowDeleted(false);
+      setProductStatus(newStatus);
+    }
+    setCurrentPage(1);
+  };
+
+  // Reset all filters to default
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setSearchQuery('');
+    setSortBy('title');
+    setSortOrder('asc');
+    setStockStatus('');
+    setShowDeleted(false);
+    setProductStatus('');
+    setCurrentPage(1);
+    setItemsPerPage(20);
+  };
+
   // Delete product mutation
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: string) => {
@@ -164,12 +204,36 @@ const ProductList = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shop-products'] });
       queryClient.invalidateQueries({ queryKey: ['shop-product-stats'] }); // Refresh stats
-      toast.success('Product deleted successfully!');
+      toast.success(
+        'Product deleted successfully! You can recover it within 1 day.'
+      );
       setShowDeleteModal(false);
       setSelectedProduct(null);
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || 'Failed to delete product');
+    },
+  });
+
+  // Recover product mutation
+  const recoverProductMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const res = await axiosInstance.put(
+        `/product/api/recover-product/${productId}`
+      );
+      return res?.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shop-products'] });
+      queryClient.invalidateQueries({ queryKey: ['shop-product-stats'] }); // Refresh stats
+      toast.success('Product recovered successfully!');
+      setShowRecoverModal(false);
+      setSelectedProduct(null);
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message || 'Failed to recover product'
+      );
     },
   });
 
@@ -182,6 +246,31 @@ const ProductList = () => {
     if (selectedProduct) {
       deleteProductMutation.mutate(selectedProduct.id);
     }
+  };
+
+  const handleRecoverClick = (product: any) => {
+    setSelectedProduct(product);
+    setShowRecoverModal(true);
+  };
+
+  const handleRecoverConfirm = () => {
+    if (selectedProduct) {
+      recoverProductMutation.mutate(selectedProduct.id);
+    }
+  };
+
+  // Calculate hours and minutes left for recovery
+  const getTimeLeft = (deletePermanentlyAt: string | Date) => {
+    if (!deletePermanentlyAt) return { hours: 0, minutes: 0 };
+    const now = new Date().getTime();
+    const deleteTime = new Date(deletePermanentlyAt).getTime();
+    const totalMinutes = Math.max(
+      0,
+      Math.floor((deleteTime - now) / (1000 * 60))
+    );
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return { hours, minutes };
   };
 
   const handleAnalyticsClick = (product: any) => {
@@ -226,7 +315,7 @@ const ProductList = () => {
 
           return (
             <Link
-              href={`/product/${row.original.slug}`}
+              href={`${process.env.NEXT_PUBLIC_USER_UI_LINK}/product/${row.original.slug}`}
               className="text-blue-400 hover:underline transition-all duration-200"
               target="_blank"
             >
@@ -323,42 +412,80 @@ const ProductList = () => {
       {
         accessorKey: 'actions',
         header: 'Actions',
-        cell: ({ row }: any) => (
-          <div className="flex gap-2">
-            <Link
-              href={`/product/${row.original.slug}`}
-              target="_blank"
-              className="p-2 text-blue-400 hover:bg-blue-400/10 rounded transition"
-              title="View Product"
-            >
-              <Eye size={18} />
-            </Link>
-            <Link
-              href={`/dashboard/edit-product/${row.original.id}`}
-              className="p-2 text-yellow-400 hover:bg-yellow-400/10 rounded transition"
-              title="Edit Product"
-            >
-              <Pencil size={18} />
-            </Link>
-            <button
-              onClick={() => handleAnalyticsClick(row.original)}
-              className="p-2 text-green-400 hover:bg-green-400/10 rounded transition"
-              title="View Analytics"
-            >
-              <BarChart size={18} />
-            </button>
-            <button
-              onClick={() => handleDeleteClick(row.original)}
-              className="p-2 text-red-400 hover:bg-red-400/10 rounded transition"
-              title="Delete Product"
-            >
-              <Trash size={18} />
-            </button>
-          </div>
-        ),
+        cell: ({ row }: any) => {
+          const isDeleted = row.original.isDeleted;
+
+          return (
+            <div className="flex gap-2">
+              {!isDeleted && (
+                <>
+                  <Link
+                    href={`/product/${row.original.slug}`}
+                    target="_blank"
+                    className="p-2 text-blue-400 hover:bg-blue-400/10 rounded transition"
+                    title="View Product"
+                  >
+                    <Eye size={18} />
+                  </Link>
+                  <Link
+                    href={`/dashboard/edit-product/${row.original.id}`}
+                    className="p-2 text-yellow-400 hover:bg-yellow-400/10 rounded transition"
+                    title="Edit Product"
+                  >
+                    <Pencil size={18} />
+                  </Link>
+                  <button
+                    onClick={() => handleAnalyticsClick(row.original)}
+                    className="p-2 text-green-400 hover:bg-green-400/10 rounded transition"
+                    title="View Analytics"
+                  >
+                    <BarChart size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(row.original)}
+                    className="p-2 text-red-400 hover:bg-red-400/10 rounded transition"
+                    title="Delete Product"
+                  >
+                    <Trash size={18} />
+                  </button>
+                </>
+              )}
+              {isDeleted && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleRecoverClick(row.original)}
+                    disabled={recoverProductMutation.isPending}
+                    className="p-2 text-green-400 hover:bg-green-400/10 rounded transition disabled:opacity-50 flex items-center gap-1"
+                    title="Recover Product"
+                  >
+                    <RefreshCw size={18} />
+                  </button>
+                  {row.original.deletePermanentlyAt &&
+                    (() => {
+                      const { hours, minutes } = getTimeLeft(
+                        row.original.deletePermanentlyAt
+                      );
+                      return (
+                        <span className="text-xs text-orange-400 whitespace-nowrap">
+                          {hours > 0 && `${hours}h `}
+                          {minutes}m left
+                        </span>
+                      );
+                    })()}
+                </div>
+              )}
+            </div>
+          );
+        },
       },
     ],
-    [handleAnalyticsClick, handleDeleteClick]
+    [
+      handleAnalyticsClick,
+      handleDeleteClick,
+      handleRecoverClick,
+      recoverProductMutation.isPending,
+      getTimeLeft,
+    ]
   );
 
   const table = useReactTable({
@@ -513,6 +640,30 @@ const ProductList = () => {
               }`}
             >
               {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
+            </button>
+
+            {/* Product Status Filter */}
+            <select
+              value={showDeleted ? 'DELETED' : productStatus}
+              onChange={(e) => handleProductStatusChange(e.target.value)}
+              className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 outline-none text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PENDING">Pending</option>
+              <option value="DRAFT">Draft</option>
+              <option value="OUT_OF_STOCK">Out of Stock</option>
+              <option value="DELETED">Deleted Products</option>
+            </select>
+
+            {/* Reset Filters Button */}
+            <button
+              onClick={handleResetFilters}
+              className="px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 hover:bg-gray-700 transition text-sm flex items-center gap-2"
+              title="Reset all filters"
+            >
+              <RotateCcw size={16} />
+              Reset
             </button>
           </div>
         </div>
@@ -732,52 +883,38 @@ const ProductList = () => {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-lg p-6 max-w-md w-full border border-gray-700">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-white">
-                Confirm Delete
-              </h3>
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setSelectedProduct(null);
-                }}
-                className="text-gray-400 hover:text-white transition"
-              >
-                <X size={24} />
-              </button>
-            </div>
-
-            <p className="text-gray-300 mb-6">
-              Are you sure you want to delete{' '}
-              <span className="font-semibold text-white">
-                {selectedProduct.title}
-              </span>
-              ? This action cannot be undone.
-            </p>
-
-            <div className="flex gap-4">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setSelectedProduct(null);
-                }}
-                className="flex-1 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleteProductMutation.isPending}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:bg-gray-600"
-              >
-                {deleteProductMutation.isPending ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <DeleteConfirmationModal
+          selectedProduct={selectedProduct}
+          onCancel={() => {
+            setShowDeleteModal(false);
+            setSelectedProduct(null);
+          }}
+          onConfirm={handleDeleteConfirm}
+          isPending={deleteProductMutation.isPending}
+        />
       )}
+
+      {/* Recover Confirmation Modal */}
+      {showRecoverModal &&
+        selectedProduct &&
+        (() => {
+          const { hours, minutes } = getTimeLeft(
+            selectedProduct.deletePermanentlyAt || new Date()
+          );
+          return (
+            <RecoverConfirmationModal
+              selectedProduct={selectedProduct}
+              onCancel={() => {
+                setShowRecoverModal(false);
+                setSelectedProduct(null);
+              }}
+              onConfirm={handleRecoverConfirm}
+              isPending={recoverProductMutation.isPending}
+              hoursLeft={hours}
+              minutesLeft={minutes}
+            />
+          );
+        })()}
     </div>
   );
 };

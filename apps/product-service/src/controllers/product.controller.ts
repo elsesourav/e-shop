@@ -519,18 +519,88 @@ export const deleteProduct = async (
       );
     }
 
-    // Soft delete - set isDeleted to true
+    // Soft delete - set isDeleted to true and schedule permanent deletion after 1 day
+    const deleteAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000); // 1 day from now
+
+    const updateData: any = {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletePermanentlyAt: deleteAt,
+    };
+
     await prisma.products.update({
       where: { id },
-      data: {
-        isDeleted: true,
-        deletedAt: new Date(),
-      },
+      data: updateData,
     });
 
     return res
       .status(200)
-      .json({ success: true, message: 'Product deleted successfully' });
+      .json({
+        success: true,
+        message:
+          'Product deleted successfully. You can recover it within 1 day.',
+      });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Recover Product
+export const recoverProduct = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const sellerId = req.seller?.id;
+
+    if (!sellerId) {
+      return next(new AuthError('Only sellers can recover products!'));
+    }
+
+    const product = await prisma.products.findUnique({
+      where: { id },
+      include: { shop: true },
+    });
+
+    if (!product) {
+      return next(new NotFoundError('Product not found'));
+    }
+
+    if (product.shop.sellerId !== sellerId) {
+      return next(
+        new ValidationError('You are not authorized to recover this product')
+      );
+    }
+
+    if (!product.isDeleted) {
+      return next(new ValidationError('Product is not deleted'));
+    }
+
+    // Check if permanent deletion date has passed
+    if (
+      product.deletePermanentlyAt &&
+      new Date() > product.deletePermanentlyAt
+    ) {
+      return next(new ValidationError('Product recovery period has expired'));
+    }
+
+    // Restore the product
+    const updateData: any = {
+      isDeleted: false,
+      deletedAt: null,
+      deletePermanentlyAt: null,
+    };
+
+    await prisma.products.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: 'Product recovered successfully!' });
   } catch (error) {
     return next(error);
   }
@@ -903,6 +973,7 @@ export const getShopProducts = async (
       category,
       subCategory,
       stockStatus,
+      showDeleted = 'false',
     } = req.query;
 
     const pageNum = parseInt(page as string, 10);
@@ -912,8 +983,14 @@ export const getShopProducts = async (
     // Build where clause for filtered products
     const where: any = {
       shop: { sellerId: req.seller.id },
-      isDeleted: false,
     };
+
+    // Filter by deleted status
+    if (showDeleted === 'true') {
+      where.isDeleted = true;
+    } else {
+      where.isDeleted = false;
+    }
 
     // Search filter (by title, slug, category, subcategory)
     if (search) {

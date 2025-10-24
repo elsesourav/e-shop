@@ -189,6 +189,7 @@ model products {
   endingDate           DateTime?
   createdAt            DateTime         @default(now())
   deletedAt            DateTime?
+  deletePermanentlyAt  DateTime?
   updatedAt            DateTime         @updatedAt
   shopId               String           @db.ObjectId
   shop                 shops            @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -209,4 +210,5 @@ model products {
   @@index([shopId, stock])
   @@index([shopId, isDeleted, stock])
   @@index([title])
+  @@index([deletePermanentlyAt])
 }

@@ -22,6 +22,7 @@ import {
   incrementDiscountUsage,
   incrementProductView,
   publishDraftProduct,
+  recoverProduct,
   saveProductDraft,
   updateDiscountCode,
   uploadProductImage,
@@ -60,6 +61,9 @@ router.get('/get-shop-product-stats', isAuthenticated, getShopProductStats);
 
 // delete product (soft delete)
 router.put('/delete-product/:id', isAuthenticated, deleteProduct);
+
+// recover product
+router.put('/recover-product/:id', isAuthenticated, recoverProduct);
 
 // product drafts
 router.post('/save-product-draft', isAuthenticated, saveProductDraft);
