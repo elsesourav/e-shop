@@ -297,7 +297,7 @@ const Page = () => {
               <div className="mt-2">
                 <Input
                   type="textarea"
-                  rows={7}
+                  rows={3}
                   cols={10}
                   label="short description (max 150 words) *"
                   placeholder="Enter product description for quick view"

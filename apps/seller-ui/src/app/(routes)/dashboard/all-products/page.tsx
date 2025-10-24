@@ -131,16 +131,6 @@ const ProductList = () => {
     }
   };
 
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchInput('');
-    setSearchQuery('');
-    setSortBy('title');
-    setSortOrder('asc');
-    setStockStatus('');
-    setCurrentPage(1);
-  };
-
   // Handle stock status filter
   const handleStockStatusClick = (status: string) => {
     if (stockStatus === status) {
@@ -524,20 +514,6 @@ const ProductList = () => {
             >
               {sortOrder === 'asc' ? '↑ Asc' : '↓ Desc'}
             </button>
-
-            {/* Clear Filters */}
-            {(searchQuery ||
-              sortBy !== 'title' ||
-              sortOrder !== 'asc' ||
-              stockStatus) && (
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 bg-red-600/20 text-red-400 rounded border border-red-700/50 hover:bg-red-600/30 transition text-sm flex items-center gap-2"
-              >
-                <X size={16} />
-                Clear
-              </button>
-            )}
           </div>
         </div>
 

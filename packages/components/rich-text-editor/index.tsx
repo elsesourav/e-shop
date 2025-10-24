@@ -1,6 +1,17 @@
+'use client';
+
+import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
-import "react-quill-new/dist/quill.snow.css";
-import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
+
+const ReactQuill = dynamic(() => import('react-quill-new'), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-transparent border border-gray-700 rounded-md text-white p-4 min-h-[250px]">
+      Loading editor...
+    </div>
+  ),
+});
 
 interface Props {
   value: string;
@@ -12,7 +23,7 @@ const RichTextEditor = ({ value, onChange }: Props) => {
   const quillRef = useRef(false);
 
   useEffect(() => {
-    if (!quillRef.current) {
+    if (!quillRef.current && typeof window !== 'undefined') {
       quillRef.current = true;
 
       setTimeout(() => {
