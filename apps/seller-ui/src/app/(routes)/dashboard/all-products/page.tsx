@@ -420,7 +420,7 @@ const ProductList = () => {
               {!isDeleted && (
                 <>
                   <Link
-                    href={`/product/${row.original.slug}`}
+                    href={`/${process.env.NEXT_PUBLIC_USER_UI_LINK}/product/${row.original.slug}`}
                     target="_blank"
                     className="p-2 text-blue-400 hover:bg-blue-400/10 rounded transition"
                     title="View Product"

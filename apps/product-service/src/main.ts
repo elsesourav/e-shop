@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
 import express from 'express';
+import './jobs/product-cron.job';
 import router from './routes/product.route';
 dotenv.config();
 // import swaggerUi from 'swagger-ui-express';
