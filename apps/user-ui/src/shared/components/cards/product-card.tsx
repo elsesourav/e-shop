@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import Ratings from '../ratings';
 import { useEffect, useState } from 'react';
-import { Heart } from 'lucide-react';
+import { Eye, Heart, ShoppingBag } from 'lucide-react';
+import ProductDetailsCard from './product-details-card';
 
 const ProductCard = ({
   product,
@@ -11,6 +12,7 @@ const ProductCard = ({
   isEvent?: boolean;
 }) => {
   const [tileLeft, setTileLeft] = useState<string>('');
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (isEvent && product?.endingDate) {
@@ -37,7 +39,7 @@ const ProductCard = ({
   }, [isEvent, product?.endingDate]);
 
   return (
-    <div className="group w-full min-h-[350px] h-max bg-white rounded-lg relative">
+    <div className="w-full min-h-[350px] h-max bg-white rounded-lg relative">
       {isEvent && (
         <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-semibold px-2 py-1 rounded-sm shadow-md">
           OFFER
@@ -115,15 +117,23 @@ const ProductCard = ({
       )}
 
       <div className="absolute z-10 flex flex-col gap-3 right-3 top-3">
-        <div className="bg-white/30 group-hover:bg-white duration-300 transition-all rounded-full p-[4px] shadow-md">
+        <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[4px] m-[2px] shadow-md">
           <Heart
             size={22}
             fill={'transparent'}
             stroke={'#000'}
-            className="cursor-pointer hover:scale-110 transition"
+            className="group-hover:scale-110 transition"
           />
         </div>
+        <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[5px] m-[1px] shadow-md">
+          <Eye size={22} className="group-hover:scale-110 transition" onClick={() => setIsOpen(true)} />
+        </div>
+        <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[6px] shadow-md">
+          <ShoppingBag size={22} className="group-hover:scale-110 transition" />
+        </div>
       </div>
+
+      {isOpen && <ProductDetailsCard product={product} setIsOpen={setIsOpen} />}
     </div>
   );
 };
