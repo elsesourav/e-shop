@@ -533,13 +533,10 @@ export const deleteProduct = async (
       data: updateData,
     });
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message:
-          'Product deleted successfully. You can recover it within 1 day.',
-      });
+    return res.status(200).json({
+      success: true,
+      message: 'Product deleted successfully. You can recover it within 1 day.',
+    });
   } catch (error) {
     return next(error);
   }
@@ -1237,8 +1234,8 @@ export const getAllProducts = async (
       orderBy.createdAt = 'desc'; // Default sort
     }
 
-    // Fetch products with pagination
-    const [products, totalCount] = await Promise.all([
+    // Fetch products with pagination and top 10 products
+    const [products, totalCount, topProducts] = await Promise.all([
       prisma.products.findMany({
         where,
         include: {
@@ -1255,6 +1252,17 @@ export const getAllProducts = async (
               name: true,
               ratings: true,
               category: true,
+            },
+          },
+          productRating: {
+            select: {
+              averageRating: true,
+              totalReviews: true,
+              fiveStars: true,
+              fourStars: true,
+              threeStars: true,
+              twoStars: true,
+              oneStar: true,
             },
           },
           reviews: {
@@ -1276,6 +1284,48 @@ export const getAllProducts = async (
         take: limitNum,
       }),
       prisma.products.count({ where }),
+      // Top 10 products by ratings and sold count
+      prisma.products.findMany({
+        where: {
+          status: 'ACTIVE',
+          isDeleted: false,
+          stock: { gt: 0 },
+        },
+        include: {
+          images: {
+            select: {
+              id: true,
+              url: true,
+              fileId: true,
+            },
+            take: 1,
+          },
+          shop: {
+            select: {
+              id: true,
+              name: true,
+              ratings: true,
+            },
+          },
+          productRating: {
+            select: {
+              averageRating: true,
+              totalReviews: true,
+              fiveStars: true,
+              fourStars: true,
+              threeStars: true,
+              twoStars: true,
+              oneStar: true,
+            },
+          },
+        },
+        orderBy: [
+          { ratings: 'desc' },
+          { soldCount: 'desc' },
+          { viewCount: 'desc' },
+        ],
+        take: 10,
+      }),
     ]);
 
     // Calculate pagination info
@@ -1286,6 +1336,7 @@ export const getAllProducts = async (
     return res.status(200).json({
       success: true,
       products,
+      topProducts,
       pagination: {
         currentPage: pageNum,
         totalPages,
@@ -1492,15 +1543,47 @@ export const createProductReview = async (
       },
     });
 
-    // Update product average rating
-    const reviews = await prisma.productReviews.findMany({
+    // Get all reviews for this product
+    const allReviews = await prisma.productReviews.findMany({
       where: { productId },
       select: { rating: true },
     });
 
+    // Calculate average rating and star distribution
+    const totalReviews = allReviews.length;
     const avgRating =
-      reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+      allReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews;
 
+    const starDistribution = allReviews.reduce(
+      (acc, r) => {
+        const starRating = Math.round(r.rating);
+        if (starRating === 5) acc.fiveStars++;
+        else if (starRating === 4) acc.fourStars++;
+        else if (starRating === 3) acc.threeStars++;
+        else if (starRating === 2) acc.twoStars++;
+        else if (starRating === 1) acc.oneStar++;
+        return acc;
+      },
+      { fiveStars: 0, fourStars: 0, threeStars: 0, twoStars: 0, oneStar: 0 }
+    );
+
+    // Update or create product ratings
+    await prisma.productRatings.upsert({
+      where: { productId },
+      create: {
+        productId,
+        averageRating: avgRating,
+        totalReviews,
+        ...starDistribution,
+      },
+      update: {
+        averageRating: avgRating,
+        totalReviews,
+        ...starDistribution,
+      },
+    });
+
+    // Also update the legacy ratings field on products for backwards compatibility
     await prisma.products.update({
       where: { id: productId },
       data: { ratings: avgRating },

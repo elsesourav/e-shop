@@ -1,0 +1,130 @@
+import Link from 'next/link';
+import Ratings from '../ratings';
+import { useEffect, useState } from 'react';
+import { Heart } from 'lucide-react';
+
+const ProductCard = ({
+  product,
+  isEvent,
+}: {
+  product: any;
+  isEvent?: boolean;
+}) => {
+  const [tileLeft, setTileLeft] = useState<string>('');
+
+  useEffect(() => {
+    if (isEvent && product?.endingDate) {
+      const updateTimer = setInterval(() => {
+        const endTime = new Date(product.endingDate).getTime();
+        const now = new Date().getTime();
+        const distance = endTime - now;
+
+        if (distance <= 0) {
+          setTileLeft('OFFER ENDED');
+          clearInterval(updateTimer);
+          return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((distance / (1000 * 60)) % 60);
+        setTileLeft(`${days}d ${hours}h ${minutes}m left with this price`);
+      }, 60 * 1000);
+
+      return () => clearInterval(updateTimer);
+    }
+    return;
+  }, [isEvent, product?.endingDate]);
+
+  return (
+    <div className="group w-full min-h-[350px] h-max bg-white rounded-lg relative">
+      {isEvent && (
+        <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-semibold px-2 py-1 rounded-sm shadow-md">
+          OFFER
+        </div>
+      )}
+
+      {product?.stock <= 5 && (
+        <div className="absolute top-2 right-2 bg-yellow-500 text-white text-[10px] font-semibold px-2 py-1 rounded-sm shadow-md">
+          LIMITED STOCK
+        </div>
+      )}
+
+      <Link href={`/product/${product?.slug}`}>
+        <img
+          src={
+            product?.images[0]?.url ||
+            'https://www.rallis.com/Upload/Images/thumbnail/Product-inside.png'
+          }
+          alt={product?.title}
+          width={300}
+          height={300}
+          className="w-full h-[220px] object-cover mx-auto rounded-t-lg"
+        />
+      </Link>
+
+      <Link
+        href={`/shop/${product?.shop?.id}`}
+        className="block text-blue-500 text-sm font-medium my-2 px-2"
+      >
+        {product?.shop?.name}
+      </Link>
+
+      <Link href={`/product/${product?.slug}`}>
+        <h3 className="text-base text-gray-800 font-semibold px-2 line-clamp-2">
+          <span className="font-extrabold">{product?.brand}</span>{' '}
+          {product?.title}
+        </h3>
+      </Link>
+
+      {product?.ratings > 0 && (
+        <div className="pt-2 px-2 flex gap-2">
+          <span className="font-bold text-sm text-gray-900">
+            {product?.ratings?.toFixed(1)}
+          </span>
+          <Ratings ratings={product?.ratings} />
+        </div>
+      )}
+
+      <div className="mt-3 flex justify-between items-center px-2">
+        <div className="flex items-center gap-2">
+          <span className="font-bold font-lg text-gray-900">
+            ₹{product?.salePrice?.toFixed(2)}
+          </span>
+          <span className="font-base text-sm text-gray-600 line-through">
+            ₹{product?.regularPrice?.toFixed(2)}
+          </span>
+          <span className="font-bold text-sm text-gray-900">
+            (
+            {(
+              ((product?.regularPrice - product?.salePrice) /
+                product?.regularPrice) *
+              100
+            )?.toFixed(0)}
+            % off)
+          </span>
+        </div>
+      </div>
+
+      {isEvent && tileLeft && (
+        <div className="mt-2">
+          <span className="text-xs inline-block bg-orange-100 text-red-600 font-semibold">
+            {tileLeft}
+          </span>
+        </div>
+      )}
+
+      <div className="absolute z-10 flex flex-col gap-3 right-3 top-3">
+        <div className="bg-white/30 group-hover:bg-white duration-300 transition-all rounded-full p-[4px] shadow-md">
+          <Heart
+            size={22}
+            fill={'transparent'}
+            stroke={'#000'}
+            className="cursor-pointer hover:scale-110 transition"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+export default ProductCard;

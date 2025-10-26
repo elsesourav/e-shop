@@ -1,6 +1,6 @@
+import { Oregano, Poppins, Roboto } from 'next/font/google';
 import Header from '../shared/widgets/header';
 import './global.css';
-import { Poppins, Roboto } from 'next/font/google';
 import Providers from './providers';
 
 const poppins = Poppins({
@@ -15,6 +15,12 @@ const roboto = Roboto({
   variable: '--font-Roboto',
 });
 
+const oregano = Oregano({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-Oregano',
+});
+
 export const metadata = {
   title: 'Eshop',
   description: 'Eshop Application',
@@ -27,7 +33,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" data-scroll-behavior="smooth">
-      <body className={`${poppins.variable} ${roboto.variable}`}>
+      <body
+        className={`${poppins.variable} ${roboto.variable} ${oregano.variable}`}
+      >
         <Providers>
           <Header />
           {children}
