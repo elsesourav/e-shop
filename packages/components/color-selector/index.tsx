@@ -23,13 +23,13 @@ const ColorSelector = ({ control, error }: any) => {
   return (
     <div className="mt-2">
       <label
-        htmlFor="color"
+        htmlFor="colors"
         className="block text-sm font-semibold text-gray-300 mb-1"
       >
         Colors
       </label>
       <Controller
-        name="color"
+        name="colors"
         control={control}
         render={({ field }) => (
           <div className="flex flex-wrap gap-3 ">
@@ -96,8 +96,8 @@ const ColorSelector = ({ control, error }: any) => {
         )}
       />
 
-      {error.color && (
-        <p className="text-red-500 text-xs mt-1">{error.color.message}</p>
+      {error.colors && (
+        <p className="text-red-500 text-xs mt-1">{error.colors.message}</p>
       )}
     </div>
   );

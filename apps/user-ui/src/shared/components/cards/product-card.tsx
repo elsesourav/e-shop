@@ -3,6 +3,7 @@ import Ratings from '../ratings';
 import { useEffect, useState } from 'react';
 import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import ProductDetailsCard from './product-details-card';
+import { formatNumber } from '../../../utils/utils';
 
 const ProductCard = ({
   product,
@@ -37,6 +38,9 @@ const ProductCard = ({
     }
     return;
   }, [isEvent, product?.endingDate]);
+
+  console.log(product);
+  
 
   return (
     <div className="w-full min-h-[350px] h-max bg-white rounded-lg relative">
@@ -91,10 +95,10 @@ const ProductCard = ({
       <div className="mt-3 flex justify-between items-center px-2">
         <div className="flex items-center gap-2">
           <span className="font-bold font-lg text-gray-900">
-            ₹{product?.salePrice?.toFixed(2)}
+            ₹{formatNumber(product?.salePrice)}
           </span>
           <span className="font-base text-sm text-gray-600 line-through">
-            ₹{product?.regularPrice?.toFixed(2)}
+            ₹{formatNumber(product?.regularPrice)}
           </span>
           <span className="font-bold text-sm text-gray-900">
             (
@@ -126,7 +130,11 @@ const ProductCard = ({
           />
         </div>
         <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[5px] m-[1px] shadow-md">
-          <Eye size={22} className="group-hover:scale-110 transition" onClick={() => setIsOpen(true)} />
+          <Eye
+            size={22}
+            className="group-hover:scale-110 transition"
+            onClick={() => setIsOpen(true)}
+          />
         </div>
         <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[6px] shadow-md">
           <ShoppingBag size={22} className="group-hover:scale-110 transition" />

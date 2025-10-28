@@ -1251,7 +1251,15 @@ export const getAllProducts = async (
               id: true,
               name: true,
               ratings: true,
+              address: true,
               category: true,
+              avatar: {
+                select: {
+                  id: true,
+                  url: true,
+                  fileId: true,
+                },
+              },
             },
           },
           productRating: {

@@ -1,31 +1,50 @@
 const CartIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
-    width="30px"
-    height="30px"
-    viewBox="0 0 0.9 0.9"
+    width="40px"
+    height="40px"
+    viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
     {...props}
   >
     <path
-      d="M0.106 0.165h0.019c0.032 0 0.061 0.021 0.07 0.052l0.115 0.373a0.073 0.073 0 0 0 0.07 0.052h0.261c0.031 0 0.059 -0.019 0.069 -0.049l0.076 -0.213c0.026 -0.072 -0.027 -0.147 -0.104 -0.147h-0.284"
-      stroke="#1C1C1C"
-      strokeWidth={0.06375}
+      d="M8.81 2L5.19 5.63"
+      stroke={props?.stroke || "#292D32"}
+      strokeWidth={1.5}
+      strokeMiterlimit={10}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M15.19 2L18.81 5.63"
+      stroke={props?.stroke || "#292D32"}
+      strokeWidth={1.5}
+      strokeMiterlimit={10}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2 7.84998C2 5.99998 2.99 5.84998 4.22 5.84998H19.78C21.01 5.84998 22 5.99998 22 7.84998C22 9.99998 21.01 9.84998 19.78 9.84998H4.22C2.99 9.84998 2 9.99998 2 7.84998Z"
+      stroke={props?.stroke || "#292D32"}
+      strokeWidth={1.5}
+    />
+    <path
+      d="M9.76001 14V17.55"
+      stroke={props?.stroke || "#292D32"}
+      strokeWidth={1.5}
       strokeLinecap="round"
     />
     <path
-      cx={10.1707}
-      cy={20.5322}
-      r={1.46779}
-      fill="#1C1C1C"
-      d="M0.436 0.77A0.055 0.055 0 0 1 0.381 0.825A0.055 0.055 0 0 1 0.326 0.77A0.055 0.055 0 0 1 0.436 0.77z"
+      d="M14.36 14V17.55"
+      stroke={props?.stroke || "#292D32"}
+      strokeWidth={1.5}
+      strokeLinecap="round"
     />
     <path
-      cx={17.0204}
-      cy={20.5322}
-      r={1.46779}
-      fill="#1C1C1C"
-      d="M0.693 0.77A0.055 0.055 0 0 1 0.638 0.825A0.055 0.055 0 0 1 0.583 0.77A0.055 0.055 0 0 1 0.693 0.77z"
+      d="M3.5 10L4.91 18.64C5.23 20.58 6 22 8.86 22H14.89C18 22 18.46 20.64 18.82 18.76L20.5 10"
+      stroke={props?.stroke || "#292D32"}
+      strokeWidth={1.5}
+      strokeLinecap="round"
     />
   </svg>
 );
