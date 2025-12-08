@@ -6,6 +6,10 @@ import { useState } from 'react';
 import Ratings from '../ratings';
 import { formatNumber } from '../../../utils/utils';
 import { CartIcon } from '../../../assets/svg';
+import useUser from '../../../hooks/useUser';
+import useLocationTracking from '../../../hooks/useLocationTracking';
+import useDeviceTracking from '../../../hooks/useDeviceTracking';
+import { useStore } from '../../../store';
 
 const ProductDetailsCard = ({
   product,
@@ -19,11 +23,28 @@ const ProductDetailsCard = ({
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(1);
 
+  const { user } = useUser();
+  const location = useLocationTracking();
+  const deviceInfo = useDeviceTracking();
+
+  const userInfo = {
+    user: user || null,
+    location: location,
+    device: deviceInfo,
+  };
+
+  const addToCart = useStore((state: any) => state.addToCart);
+  const addToWishlist = useStore((state: any) => state.addToWishlist);
+  const removeFromWishlist = useStore((state: any) => state.removeFromWishlist);
+  const wishlist = useStore((state: any) => state.wishlist);
+  const isInWishlist = wishlist.find((item: any) => item.id === product?.id);
+  const cart = useStore((state: any) => state.cart);
+  const isInCart = cart.find((item: any) => item.id === product?.id);
+
   const estimatedDelivery = new Date();
   estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
 
   const router = useRouter();
-
 
   return (
     <div
@@ -215,11 +236,32 @@ const ProductDetailsCard = ({
 
               <button
                 className={`flex px-4 py-2 items-center gap-2 bg-[#ff5722] hover:bg-[#e64a19] text-white font-medium rounded-md shadow-md hover:scale-105 transition-all`}
+                onClick={() =>
+                  !isInCart && addToCart({ ...product, quantity: 1 }, userInfo)
+                }
               >
-                <CartIcon stroke="#fff" className="size-5" /> Add to Cart
+                <CartIcon
+                  stroke="white"
+                  width={25}
+                  height={25}
+                  className="group-hover:scale-110 transition"
+                />{' '}
+                Add to Cart
               </button>
-              <button className="opacity-70 cursor-pointer hover:scale-105 transition-all">
-                <Heart size={34} stroke='transparent' fill="red" />
+              <button
+                className="opacity-70 cursor-pointer hover:scale-105 transition-all"
+                onClick={() =>
+                  isInWishlist
+                    ? removeFromWishlist(product.id, userInfo)
+                    : addToWishlist({ ...product, quantity: 1 }, userInfo)
+                }
+              >
+                <Heart
+                  size={34}
+                  strokeWidth={1}
+                  stroke={isInWishlist ? 'red' : '#A00'}
+                  fill={isInWishlist ? 'red' : 'transparent'}
+                />
               </button>
             </div>
             <div className="mt-3">
@@ -230,9 +272,9 @@ const ProductDetailsCard = ({
               )}
             </div>
             <div className="mt-3 text-gray-600 text-sm">
-              Estimated Delivery:{" "}
+              Estimated Delivery:{' '}
               <strong>{estimatedDelivery.toDateString()}</strong>
-              </div>
+            </div>
           </div>
         </div>
       </div>

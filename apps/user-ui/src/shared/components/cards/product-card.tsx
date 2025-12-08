@@ -1,9 +1,14 @@
 import Link from 'next/link';
 import Ratings from '../ratings';
 import { useEffect, useState } from 'react';
-import { Eye, Heart, ShoppingBag } from 'lucide-react';
+import { Eye, Heart } from 'lucide-react';
 import ProductDetailsCard from './product-details-card';
 import { formatNumber } from '../../../utils/utils';
+import { useStore } from '../../../store';
+import useUser from '../../../hooks/useUser';
+import useLocationTracking from '../../../hooks/useLocationTracking';
+import useDeviceTracking from '../../../hooks/useDeviceTracking';
+import { CartIcon } from '../../../assets/svg';
 
 const ProductCard = ({
   product,
@@ -14,6 +19,24 @@ const ProductCard = ({
 }) => {
   const [tileLeft, setTileLeft] = useState<string>('');
   const [isOpen, setIsOpen] = useState<boolean>(false);
+
+  const { user } = useUser();
+  const location = useLocationTracking();
+  const deviceInfo = useDeviceTracking();
+
+  const userInfo = {
+    user: user || null,
+    location: location,
+    device: deviceInfo,
+  };
+
+  const addToCart = useStore((state: any) => state.addToCart);
+  const addToWishlist = useStore((state: any) => state.addToWishlist);
+  const removeFromWishlist = useStore((state: any) => state.removeFromWishlist);
+  const wishlist = useStore((state: any) => state.wishlist);
+  const isInWishlist = wishlist.find((item: any) => item.id === product?.id);
+  const cart = useStore((state: any) => state.cart);
+  const isInCart = cart.find((item: any) => item.id === product?.id);
 
   useEffect(() => {
     if (isEvent && product?.endingDate) {
@@ -40,7 +63,6 @@ const ProductCard = ({
   }, [isEvent, product?.endingDate]);
 
   console.log(product);
-  
 
   return (
     <div className="w-full min-h-[350px] h-max bg-white rounded-lg relative">
@@ -121,12 +143,19 @@ const ProductCard = ({
       )}
 
       <div className="absolute z-10 flex flex-col gap-3 right-3 top-3">
-        <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[4px] m-[2px] shadow-md">
+        <div
+          className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[4px] m-[2px] shadow-md"
+          onClick={() =>
+            isInWishlist
+              ? removeFromWishlist(product.id, userInfo)
+              : addToWishlist({ ...product, quantity: 1 }, userInfo)
+          }
+        >
           <Heart
             size={22}
-            fill={'transparent'}
-            stroke={'#000'}
             className="group-hover:scale-110 transition"
+            stroke={isInWishlist ? 'red' : '#333'}
+            fill={isInWishlist ? 'red' : 'transparent'}
           />
         </div>
         <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[5px] m-[1px] shadow-md">
@@ -136,8 +165,19 @@ const ProductCard = ({
             onClick={() => setIsOpen(true)}
           />
         </div>
-        <div className="group cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[6px] shadow-md">
-          <ShoppingBag size={22} className="group-hover:scale-110 transition" />
+        <div
+          className="group grid place-items-center cursor-pointer bg-white/50 hover:bg-white duration-300 transition-all rounded-full p-[4px] shadow-md"
+          onClick={() =>
+            !isInCart && addToCart({ ...product, quantity: 1 }, userInfo)
+          }
+        >
+          <CartIcon
+            width={25}
+            height={25}
+            stroke={isInCart ? '#700' : '#333'}
+            fill={isInCart ? '#ff5722' : 'transparent'}
+            className="group-hover:scale-110 transition"
+          />
         </div>
       </div>
 
