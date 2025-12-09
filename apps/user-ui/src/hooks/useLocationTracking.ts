@@ -19,7 +19,7 @@ type Location = {
 };
 
 const getStoredLocation = () => {
-  const storedData = localStorage.getItem(LOCATION_STORAGE_KEY);
+  const storedData = window.localStorage.getItem(LOCATION_STORAGE_KEY);
   if (!storedData) return null;
 
   const parsedData = JSON.parse(storedData);

@@ -235,7 +235,11 @@ const ProductDetailsCard = ({
               </div>
 
               <button
-                className={`flex px-4 py-2 items-center gap-2 bg-[#ff5722] hover:bg-[#e64a19] text-white font-medium rounded-md shadow-md hover:scale-105 transition-all`}
+                className={`flex px-4 py-2 items-center gap-2 bg-[#ff5722] text-white font-medium rounded-md shadow-md transition-all ${
+                  isInCart
+                    ? 'cursor-not-allowed'
+                    : 'hover:scale-105 hover:bg-[#e64a19]'
+                }`}
                 onClick={() =>
                   !isInCart && addToCart({ ...product, quantity: 1 }, userInfo)
                 }
