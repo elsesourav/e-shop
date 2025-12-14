@@ -4,7 +4,7 @@ const LOCATION_STORAGE_KEY = 'user_location_tracking';
 const LOCATION_EXPIRY_DAYS = 20;
 
 
-type Location = {
+export type LocationType = {
   continent_code: string;
   city: string;
   city_code: string;
@@ -30,7 +30,7 @@ const getStoredLocation = () => {
 
 
 const useLocationTracking = () => {
-  const [location, setLocation] = useState<Location | null>(getStoredLocation());
+  const [location, setLocation] = useState<LocationType | null>(getStoredLocation());
 
   useEffect(() => {
     if (location) return;

@@ -32,6 +32,7 @@
     "**/*.tsx",
     "../../apps/user-ui/.next/types/**/*.ts",
     "../../dist/apps/user-ui/.next/types/**/*.ts",
+    "../../packages/**/*",
     "next-env.d.ts",
     ".next/types/**/*.ts"
   ],
