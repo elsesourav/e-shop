@@ -15,6 +15,13 @@ const CartPage = () => {
   const { user } = useUser();
   const location = useLocationTracking();
   const deviceInfo = useDeviceTracking();
+
+  const userInfo = {
+    user: user || null,
+    location: location,
+    deviceInfo: deviceInfo,
+  };
+
   const cart = useStore((state: any) => state.cart);
   const [discountedProductId, setDiscountedProductId] = useState<string>('');
   const [discountPercent, setDiscountPercent] = useState<number>(0);
@@ -45,7 +52,7 @@ const CartPage = () => {
   };
 
   const removeItem = (productId: string) => {
-    removeFromCart(productId, user, location, deviceInfo);
+    removeFromCart(productId, userInfo);
   };
 
   const subtotal = cart.reduce((total: number, item: any) => {

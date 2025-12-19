@@ -14,6 +14,12 @@ const WishlistPage = () => {
   const location = useLocationTracking();
   const deviceInfo = useDeviceTracking();
 
+  const userInfo = {
+    user: user || null,
+    location: location,
+    deviceInfo: deviceInfo,
+  };
+
   const addToCart = useStore((state: any) => state.addToCart);
   const removeFromWishlist = useStore((state: any) => state.removeFromWishlist);
   const wishlist = useStore((state: any) => state.wishlist);
@@ -39,8 +45,8 @@ const WishlistPage = () => {
   };
 
   const removeItem = (productId: string) => {
-    removeFromWishlist(productId, user, location, deviceInfo);
-  }
+    removeFromWishlist(productId, userInfo);
+  };
 
   return (
     <div className="w-full bg-white ">
@@ -112,13 +118,7 @@ const WishlistPage = () => {
                       <button
                         className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-200"
                         onClick={() =>
-                          addToCart(
-                            item,
-                            item.quantity ?? 1,
-                            user,
-                            location,
-                            deviceInfo
-                          )
+                          addToCart(item, item.quantity ?? 1, userInfo)
                         }
                       >
                         Add to Cart
