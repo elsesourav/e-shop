@@ -1,13 +1,13 @@
 'use client';
-import { useRouter } from 'next/navigation';
-import useUser from '../../../hooks/useUser';
-import useLocationTracking from '../../../hooks/useLocationTracking';
-import useDeviceTracking from '../../../hooks/useDeviceTracking';
-import Link from 'next/link';
-import { useStore } from '../../../store';
-import { useState } from 'react';
-import Image from 'next/image';
 import { Loader2, Minus, Plus } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import useDeviceTracking from '../../../hooks/useDeviceTracking';
+import useLocationTracking from '../../../hooks/useLocationTracking';
+import useUser from '../../../hooks/useUser';
+import { useStore } from '../../../store';
 import { formatNumber } from '../../../utils/utils';
 
 const CartPage = () => {
@@ -140,7 +140,9 @@ const CartPage = () => {
                           </span>
                         </div>
                       ) : (
-                        <span className="">₹{formatNumber(item.salePrice)}</span>
+                        <span className="">
+                          ₹{formatNumber(item.salePrice)}
+                        </span>
                       )}
                     </td>
                     <td className="">
@@ -223,6 +225,7 @@ const CartPage = () => {
                   name="address"
                   className="w-full p-2 border border-gray-200 rounded-l-md focus:outline-none focus:border-blue-500"
                   value={selectedAddressId}
+                  onChange={(e) => setSelectedAddressId(e.target.value)}
                 >
                   <option value="address-x">Home - West Bengal - 700XXX</option>
                 </select>
@@ -245,15 +248,15 @@ const CartPage = () => {
               <div className="flex justify-between items-center text-[#010f1c] font-[550] pb-3">
                 <span className="font-jost">Total</span>
                 <span>₹{formatNumber(subtotal - discountAmount)}</span>
-                </div>
-                
-                <button
-                  disabled={loading}
-                  className='flex w-full items-center justify-center gap-2 cursor-pointer mt-4 py-3 bg-[#010f1c] text-white hover:bg-[#0989ff] transition-all rounded-lg'
-                >
-                  {loading && <Loader2 className='animate-spin size-5' />}
-                  {loading ? 'Redirecting...' : 'Proceed to Checkout'}
-                </button>
+              </div>
+
+              <button
+                disabled={loading}
+                className="flex w-full items-center justify-center gap-2 cursor-pointer mt-4 py-3 bg-[#010f1c] text-white hover:bg-[#0989ff] transition-all rounded-lg"
+              >
+                {loading && <Loader2 className="animate-spin size-5" />}
+                {loading ? 'Redirecting...' : 'Proceed to Checkout'}
+              </button>
             </div>
           </div>
         )}

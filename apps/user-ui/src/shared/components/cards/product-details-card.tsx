@@ -30,7 +30,7 @@ const ProductDetailsCard = ({
   const userInfo = {
     user: user || null,
     location: location,
-    device: deviceInfo,
+    deviceInfo: deviceInfo,
   };
 
   const addToCart = useStore((state: any) => state.addToCart);

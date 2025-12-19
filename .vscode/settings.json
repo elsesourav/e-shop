@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["dropshadow", "jost", "kafkajs", "removedotbg", "sasl"]
+  "cSpell.words": ["dropshadow", "jost", "kafkajs", "removedotbg", "sasl"],
+  "prisma.pinToPrisma6": true
 }

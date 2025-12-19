@@ -13,7 +13,7 @@ export const updateUserAnalytics = async (event: any) => {
     const add_to_actions = ['ADD_TO_CART', 'ADD_TO_WISHLIST'];
     const remove_from_actions = ['REMOVE_FROM_CART', 'REMOVE_FROM_WISHLIST'];
 
-    const updatedActions = existingData?.actions || [];
+    const updatedActions: any[] = existingData?.actions || [];
 
     const actionExists = updatedActions.some(
       (entry: any) =>
@@ -26,7 +26,7 @@ export const updateUserAnalytics = async (event: any) => {
         productId: event?.productId,
         shopId: event?.shopId,
         action: event.action,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -36,7 +36,7 @@ export const updateUserAnalytics = async (event: any) => {
         productId: event?.productId,
         shopId: event?.shopId,
         action: event.action,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -60,16 +60,21 @@ export const updateUserAnalytics = async (event: any) => {
 
     const extraFields: Record<string, any> = {};
 
-    if (event.country) {
-      extraFields.country = event.country;
+    if (event.location?.country || event.country) {
+      extraFields.country = event.location?.country || event.country;
     }
 
-    if (event.city) {
-      extraFields.city = event.city;
+    if (event.location?.city || event.city) {
+      extraFields.city = event.location?.city || event.city;
     }
 
-    if (event.device) {
-      extraFields.device = event.device;
+    if (event.deviceInfo || event.device) {
+      const deviceData = event.deviceInfo || event.device;
+      extraFields.device =
+        typeof deviceData === 'object'
+          ? `${deviceData.os || ''} ${deviceData.browser || ''}`.trim() ||
+            JSON.stringify(deviceData)
+          : deviceData;
     }
 
     // update or create the user analytics
@@ -109,9 +114,9 @@ export const updateProductAnalytics = async (event: any) => {
       updateFields.addedToWishlists = { increment: 1 };
 
     if (event.action === 'REMOVE_FROM_CART')
-      updateFields.removedFromCarts = { decrement: 1 };
+      updateFields.removedFromCarts = { increment: 1 };
     if (event.action === 'REMOVE_FROM_WISHLIST')
-      updateFields.removedFromWishlists = { decrement: 1 };
+      updateFields.removedFromWishlists = { increment: 1 };
 
     if (event.action === 'PURCHASE') updateFields.purchases = { increment: 1 };
 

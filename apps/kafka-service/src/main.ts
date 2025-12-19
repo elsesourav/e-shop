@@ -1,5 +1,5 @@
 import { kafka } from '@packages/utils/kafka';
-import { updateUserAnalytics } from 'apps/kafka-service/src/services/analytics.service';
+import { updateUserAnalytics } from './services/analytics.service';
 
 const consumer = kafka.consumer({ groupId: 'user-events-group' });
 const UPDATE_DELAY = 3000; // 3 seconds
@@ -11,6 +11,7 @@ const validActions = [
   'REMOVE_FROM_CART',
   'REMOVE_FROM_WISHLIST',
 ];
+
 
 const eventQueue: any[] = [];
 

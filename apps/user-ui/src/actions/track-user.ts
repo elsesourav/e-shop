@@ -21,6 +21,7 @@ export const sendKafkaEvent = async (eventData: KafkaEvent) => {
       topic: 'users-events',
       messages: [{ value: JSON.stringify(eventData) }],
     });
+    console.log('Kafka event sent successfully:', eventData.action);
   } catch (error) {
     console.log('Error sending Kafka event:', error);
   } finally {

@@ -39,6 +39,7 @@ model users {
   productReviews productReviews[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  userAnalytics  userAnalytics?
 }
 
 // Shop reviews
@@ -96,23 +97,24 @@ model productRatings {
 
 // Shop model
 model shops {
-  id           String        @id @default(auto()) @map("_id") @db.ObjectId
-  name         String        @unique
-  description  String
-  category     String
-  avatar       images[]
-  coverBanner  String?
-  address      String
-  openingHours String?
-  website      String?
-  socialLinks  Json[]
-  ratings      Float         @default(0.0)
-  reviews      shopReviews[]
-  sellerId     String        @unique @db.ObjectId
-  seller       sellers       @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  products     products[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id               String             @id @default(auto()) @map("_id") @db.ObjectId
+  name             String             @unique
+  description      String
+  category         String
+  avatar           images[]
+  coverBanner      String?
+  address          String
+  openingHours     String?
+  website          String?
+  socialLinks      Json[]
+  ratings          Float              @default(0.0)
+  reviews          shopReviews[]
+  sellerId         String             @unique @db.ObjectId
+  seller           sellers            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  products         products[]
+  productAnalytics productAnalytics[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   @@index([category])
   @@index([ratings])
@@ -177,10 +179,10 @@ enum productStatus {
 
 // Product model
 model products {
-  id                   String           @id @default(auto()) @map("_id") @db.ObjectId
-  status               productStatus    @default(ACTIVE)
+  id                   String            @id @default(auto()) @map("_id") @db.ObjectId
+  status               productStatus     @default(ACTIVE)
   title                String
-  slug                 String           @unique
+  slug                 String            @unique
   category             String
   subCategory          String
   description          String
@@ -188,31 +190,32 @@ model products {
   stock                Int
   salePrice            Float
   regularPrice         Float
-  ratings              Float            @default(0.0)
+  ratings              Float             @default(0.0)
   images               images[]
   reviews              productReviews[]
   productRating        productRatings?
-  discountCodes        String[]         @db.ObjectId
+  productAnalytics     productAnalytics?
+  discountCodes        String[]          @db.ObjectId
   tags                 String[]
   colors               String[]
   sizes                String[]
-  cod                  Boolean          @default(false)
+  cod                  Boolean           @default(false)
   brand                String?
   warranty             String?
   videoUrl             String?
   customSpecifications Json?
   customProperties     Json?
-  isDeleted            Boolean          @default(false)
-  viewCount            Int              @default(0)
-  soldCount            Int              @default(0)
+  isDeleted            Boolean           @default(false)
+  viewCount            Int               @default(0)
+  soldCount            Int               @default(0)
   startingDate         DateTime?
   endingDate           DateTime?
-  createdAt            DateTime         @default(now())
+  createdAt            DateTime          @default(now())
   deletedAt            DateTime?
   deletePermanentlyAt  DateTime?
-  updatedAt            DateTime         @updatedAt
-  shopId               String           @db.ObjectId
-  shop                 shops            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  updatedAt            DateTime          @updatedAt
+  shopId               String            @db.ObjectId
+  shop                 shops             @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId])
   @@index([category])
@@ -231,4 +234,46 @@ model products {
   @@index([shopId, isDeleted, stock])
   @@index([title])
   @@index([deletePermanentlyAt])
+}
+
+// User Analytics model
+model userAnalytics {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @unique @db.ObjectId
+  user        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actions     Json[]
+  country     String?
+  city        String?
+  device      String?
+  lastVisited DateTime?
+  lastLogin   DateTime?
+  loginCount  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([lastLogin])
+  @@index([loginCount])
+}
+
+// Product Analytics model
+model productAnalytics {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  productId            String    @unique @db.ObjectId
+  product              products  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId               String?   @db.ObjectId
+  shop                 shops?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  views                Int       @default(0)
+  purchases            Int       @default(0)
+  addedToCarts         Int       @default(0)
+  addedToWishlists     Int       @default(0)
+  removedFromCarts     Int       @default(0)
+  removedFromWishlists Int       @default(0)
+  lastVisitedAt        DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([shopId])
+  @@index([views])
+  @@index([purchases])
+  @@index([lastVisitedAt])
 }
