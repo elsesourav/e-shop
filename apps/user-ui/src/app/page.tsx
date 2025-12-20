@@ -1,10 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import ProductCard from '../shared/components/cards/product-card';
 import SectionTitle from '../shared/components/section/section-title';
 import Hero from '../shared/models/hero';
 import axiosInstance from '../utils/axiosInstance';
-import ProductCard from '../shared/components/cards/product-card';
 
 const Page = () => {
   const {
@@ -15,7 +15,7 @@ const Page = () => {
     queryKey: ['products'],
     queryFn: async () => {
       const res = await axiosInstance.get(
-        '/product/api/get-all-products?page=1&limit=10'
+        '/products/api/get-all-products?page=1&limit=10'
       );
       return res.data?.products;
     },
@@ -26,7 +26,7 @@ const Page = () => {
     queryKey: ['latest-product'],
     queryFn: async () => {
       const res = await axiosInstance.get(
-        '/product/api/get-all-products?page=1&limit=10&sortBy=createdAt&sortOrder=desc'
+        '/products/api/get-all-products?page=1&limit=10&sortBy=createdAt&sortOrder=desc'
       );
       return res.data?.products;
     },

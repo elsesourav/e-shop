@@ -1,12 +1,12 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
-import express from 'express';
-import cors from 'cors';
-import proxy from 'express-http-proxy';
-import morgan from 'morgan';
-import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import * as dotenv from 'dotenv';
+import express from 'express';
+import proxy from 'express-http-proxy';
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit';
+import morgan from 'morgan';
 import initializeSiteConfig from './libs/initializeSiteConfig';
+dotenv.config();
 
 const app = express();
 
@@ -39,7 +39,7 @@ app.get('/gateway-health', (req, res) => {
   res.send({ message: 'Welcome to api-gateway!' });
 });
 
-app.use('/product', proxy('http://localhost:6002'));
+app.use('/products', proxy('http://localhost:6002'));
 app.use('/', proxy('http://localhost:6001'));
 
 const port = process.env.PORT || 8080;

@@ -3,13 +3,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import Ratings from '../ratings';
-import { formatNumber } from '../../../utils/utils';
 import { CartIcon } from '../../../assets/svg';
-import useUser from '../../../hooks/useUser';
-import useLocationTracking from '../../../hooks/useLocationTracking';
 import useDeviceTracking from '../../../hooks/useDeviceTracking';
+import useLocationTracking from '../../../hooks/useLocationTracking';
+import useUser from '../../../hooks/useUser';
 import { useStore } from '../../../store';
+import { formatNumber } from '../../../utils/utils';
+import ImageMagnifier from '../../components/image-magnifier';
+import Ratings from '../ratings';
 
 const ProductDetailsCard = ({
   product,
@@ -57,12 +58,13 @@ const ProductDetailsCard = ({
       >
         <div className="w-full flex flex-col md:flex-row">
           <div className="w-full md:w-1/2 h-full">
-            <div className="w-full aspect-square mx-auto relative rounded-lg overflow-hidden bg-gray-50">
-              <Image
+            <div className="w-full aspect-square mx-auto relative rounded-lg bg-gray-50 z-10">
+              <ImageMagnifier
                 src={product?.images?.[activeImage]?.url}
                 alt={product?.images?.[activeImage]?.url}
-                fill
-                className="object-contain"
+                zoomLevel={4}
+                position="left"
+                magnifierWidth={window.innerWidth * 0.14}
               />
             </div>
             {/* Thumbnail Navigation */}
@@ -72,16 +74,17 @@ const ProductDetailsCard = ({
                   key={index}
                   className={`relative w-full aspect-square cursor-pointer border-2 rounded-md ${
                     index === activeImage
-                      ? 'border-gray-900'
-                      : 'border-transparent'
+                      ? 'border-blue-500 ring-1 ring-blue-500'
+                      : 'border-gray-200 hover:border-gray-300'
                   }`}
                   onClick={() => setActiveImage(index)}
+                  onMouseEnter={() => setActiveImage(index)}
                 >
                   <Image
                     src={image.url}
                     alt={`Thumbnail ${index + 1}`}
                     fill
-                    className="object-cover rounded-[inherit]"
+                    className="object-cover rounded-[4px]"
                   />
                 </div>
               ))}

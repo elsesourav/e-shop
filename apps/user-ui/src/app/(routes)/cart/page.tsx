@@ -49,7 +49,7 @@ const CartPage = () => {
           : item
       ),
     }));
-  };
+  };  
 
   const removeItem = (productId: string) => {
     removeFromCart(productId, userInfo);

@@ -1,11 +1,10 @@
-"use client";
-import Link from 'next/link';
+'use client';
 import { Search } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 import axiosInstance from '../../../utils/axiosInstance';
 import HeaderBottom from './header-bottom';
 import HeaderProfile from './header-profile';
-import { useState } from 'react';
-
 
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -18,7 +17,7 @@ const Header = () => {
     setLoadingSuggestions(true);
     try {
       const response = await axiosInstance.get(
-        `/product/api/search-product?Q=${encodeURIComponent(searchQuery)}`
+        `/products/api/search-product?Q=${encodeURIComponent(searchQuery)}`
       );
 
       setSuggestions(response.data.products?.slice(0, 10) || []);

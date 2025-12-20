@@ -27,7 +27,7 @@ import {
   updateDiscountCode,
   uploadProductImage,
   validateDiscountCode,
-} from '../controllers/product.controller';
+} from '../controllers/products.controller';
 
 const router: Router = express.Router();
 

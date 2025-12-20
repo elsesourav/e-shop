@@ -49,14 +49,14 @@ const fetchProducts = async (params: {
   if (params.status) queryParams.append('status', params.status);
 
   const res = await axiosInstance.get(
-    `/product/api/get-shop-products?${queryParams.toString()}`
+    `/products/api/get-shop-products?${queryParams.toString()}`
   );
   return res?.data;
 };
 
 // Fetch product stats separately (optimized endpoint)
 const fetchProductStats = async () => {
-  const res = await axiosInstance.get('/product/api/get-shop-product-stats');
+  const res = await axiosInstance.get('/products/api/get-shop-product-stats');
   return res?.data;
 };
 
@@ -197,7 +197,7 @@ const ProductList = () => {
   const deleteProductMutation = useMutation({
     mutationFn: async (productId: string) => {
       const res = await axiosInstance.put(
-        `/product/api/delete-product/${productId}`
+        `/products/api/delete-product/${productId}`
       );
       return res?.data;
     },
@@ -219,7 +219,7 @@ const ProductList = () => {
   const recoverProductMutation = useMutation({
     mutationFn: async (productId: string) => {
       const res = await axiosInstance.put(
-        `/product/api/recover-product/${productId}`
+        `/products/api/recover-product/${productId}`
       );
       return res?.data;
     },

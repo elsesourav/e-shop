@@ -47,7 +47,7 @@ const Page = () => {
     queryKey: ['categories'],
     queryFn: async () => {
       try {
-        const res = await axiosInstance.get('/product/api/get-categories');
+        const res = await axiosInstance.get('/products/api/get-categories');
         return res.data;
       } catch (error) {
         console.log(error);
@@ -61,9 +61,12 @@ const Page = () => {
     useQuery({
       queryKey: ['shop-discounts'],
       queryFn: async () => {
-        const res = await axiosInstance.get('/product/api/get-discount-codes', {
-          params: { activeOnly: 'true' }, // Only fetch active discount codes
-        });
+        const res = await axiosInstance.get(
+          '/products/api/get-discount-codes',
+          {
+            params: { activeOnly: 'true' }, // Only fetch active discount codes
+          }
+        );
         return res?.data?.discountCodes || [];
       },
     });
@@ -80,7 +83,7 @@ const Page = () => {
   const onSubmit = async (data: any) => {
     try {
       setLoading(true);
-      await axiosInstance.post('/product/api/create-product', data);
+      await axiosInstance.post('/products/api/create-product', data);
       toast.success('Product created successfully!');
       router.push('/dashboard/all-products');
     } catch (error: any) {
@@ -103,7 +106,7 @@ const Page = () => {
       }
 
       // Save draft to backend
-      await axiosInstance.post('/product/api/save-product-draft', formData);
+      await axiosInstance.post('/products/api/save-product-draft', formData);
       toast.success('Draft saved successfully!');
 
       // Optionally redirect to drafts page
@@ -137,7 +140,7 @@ const Page = () => {
     try {
       const base64Image = await convertToBase64(file);
       const response = await axiosInstance.post(
-        '/product/api/upload-product-image',
+        '/products/api/upload-product-image',
         { image: base64Image }
       );
 
@@ -167,7 +170,7 @@ const Page = () => {
       const imageToDelete = updatedImages[index];
 
       if (imageToDelete && typeof imageToDelete === 'object') {
-        await axiosInstance.delete('/product/api/delete-product-image', {
+        await axiosInstance.delete('/products/api/delete-product-image', {
           data: { fileId: imageToDelete.fileId! },
         });
       }

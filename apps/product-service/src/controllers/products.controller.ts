@@ -1366,13 +1366,15 @@ export const getProductById = async (
   next: NextFunction
 ) => {
   try {
-    const { identifier } = req.params; // Can be ID or slug
+    console.log(req.params);
 
-    // Try to find by ID first, then by slug
+    const { identifier } = req.params; // Can be ID or slug
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(identifier);
+
     const product = await prisma.products.findFirst({
       where: {
-        OR: [{ id: identifier }, { slug: identifier }],
         isDeleted: false,
+        OR: [{ slug: identifier }, ...(isObjectId ? [{ id: identifier }] : [])],
       },
       include: {
         images: true,

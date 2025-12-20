@@ -1,0 +1,10 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "add-scrollbar-hide",
+			"type": "shell",
+			"command": "echo \".scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }\" >> apps/user-ui/src/app/global.css"
+		}
+	]
+}

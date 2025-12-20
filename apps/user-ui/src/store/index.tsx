@@ -64,7 +64,6 @@ export const useStore = create<Store>()(
           };
         });
 
-        console.log("Added to cart:", context);
         
         // send kafka event for adding to cart
         if (context.user?.id && context.location && context.deviceInfo) {
@@ -86,7 +85,6 @@ export const useStore = create<Store>()(
           cart: state.cart.filter((item) => item.id !== productId),
         }));
 
-        console.log("Removed from cart:", context);
         
         // send kafka event for removing from cart
         if (
@@ -113,7 +111,6 @@ export const useStore = create<Store>()(
           return { wishlist: [...state.wishlist, product] };
         });
 
-        console.log("Added to wishlist:", context);
         // send kafka event for adding to wishlist
         if (context.user?.id && context.location && context.deviceInfo) {
           sendKafkaEvent({
@@ -135,7 +132,6 @@ export const useStore = create<Store>()(
           wishlist: state.wishlist.filter((item) => item.id !== productId),
         }));
 
-        console.log("Removed from wishlist:", context);
         // send kafka event for removing from wishlist
         if (
           context.user?.id &&

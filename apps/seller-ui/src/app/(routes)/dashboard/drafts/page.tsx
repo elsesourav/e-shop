@@ -37,7 +37,7 @@ const DraftsPage = () => {
     queryKey: ['draft-products'],
     queryFn: async () => {
       const response = await axiosInstance.get(
-        '/product/api/get-draft-products'
+        '/products/api/get-draft-products'
       );
       return response.data;
     },
@@ -46,7 +46,7 @@ const DraftsPage = () => {
   // Delete draft mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await axiosInstance.delete(`/product/api/delete-draft-product/${id}`);
+      await axiosInstance.delete(`/products/api/delete-draft-product/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['draft-products'] });
@@ -60,7 +60,7 @@ const DraftsPage = () => {
   // Publish draft mutation
   const publishMutation = useMutation({
     mutationFn: async (id: string) => {
-      await axiosInstance.put(`/product/api/publish-draft-product/${id}`);
+      await axiosInstance.put(`/products/api/publish-draft-product/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['draft-products'] });

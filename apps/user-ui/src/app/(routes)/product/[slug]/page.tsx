@@ -1,3 +1,4 @@
+import ProductDetails from "@/apps/user-ui/src/shared/models/product/product-details";
 import axiosInstance from "@/apps/user-ui/src/utils/axiosInstance";
 import { Metadata } from "next";
 
@@ -7,8 +8,9 @@ async function fetchProductDetails(slug: string) {
   return response.data?.product;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const product = await fetchProductDetails(params?.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await fetchProductDetails(slug);
   
   return {
     title: `${product?.title} | 'E-Shop'`,
@@ -28,13 +30,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-const page = async ({ params }: { params: { slug: string } }) => {
-  const productDetails = await fetchProductDetails(params?.slug);
-
-  return (
-    <div>
-
-    </div>
-  )
+const page = async ({ params }: { params: Promise<{ slug: string }> }) => {
+  const { slug } = await params;
+  const productDetails = await fetchProductDetails(slug);
+  console.log(productDetails);
+  
+  return <ProductDetails product={productDetails} />
 }
 export default page

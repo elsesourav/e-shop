@@ -20,7 +20,7 @@ const Page = () => {
   const { data: discountCodes = [], isLoading } = useQuery({
     queryKey: ['shop-discounts'],
     queryFn: async () => {
-      const res = await axiosInstance.get('/product/api/get-discount-codes');
+      const res = await axiosInstance.get('/products/api/get-discount-codes');
       return res?.data?.discountCodes || [];
     },
   });
@@ -51,7 +51,7 @@ const Page = () => {
   const deleteDiscountCodeMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await axiosInstance.delete(
-        `/product/api/delete-discount-code/${id}`
+        `/products/api/delete-discount-code/${id}`
       );
       return res?.data;
     },
@@ -70,7 +70,7 @@ const Page = () => {
   const updateDiscountCodeMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const res = await axiosInstance.put(
-        `/product/api/update-discount-code/${id}`,
+        `/products/api/update-discount-code/${id}`,
         data
       );
       return res?.data;
@@ -91,7 +91,7 @@ const Page = () => {
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const res = await axiosInstance.put(
-        `/product/api/update-discount-code/${id}`,
+        `/products/api/update-discount-code/${id}`,
         { isActive }
       );
       return res?.data;
@@ -114,7 +114,7 @@ const Page = () => {
   const createDiscountCodeMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await axiosInstance.post(
-        '/product/api/create-discount-code',
+        '/products/api/create-discount-code',
         data
       );
       return res?.data;

@@ -41,7 +41,7 @@ export const updateUserAnalytics = async (event: any) => {
     }
 
     // remove ADD_TO_? when REMOVE_FROM_? is triggered
-    else if (remove_from_actions.includes(event.action) && actionExists) {
+    else if (remove_from_actions.includes(event.action)) {
       const actionToRemove =
         event.action === 'REMOVE_FROM_CART' ? 'ADD_TO_CART' : 'ADD_TO_WISHLIST';
       const index = updatedActions.findIndex(

@@ -4,7 +4,7 @@ import cors from 'cors';
 import * as dotenv from 'dotenv';
 import express from 'express';
 import './jobs/product-cron.job';
-import router from './routes/product.route';
+import router from './routes/products.route';
 dotenv.config();
 // import swaggerUi from 'swagger-ui-express';
 // const swaggerDocument = require('./swagger-output.json');
