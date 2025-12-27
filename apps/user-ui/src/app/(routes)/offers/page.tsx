@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Range } from 'react-range';
-import ProductCard from '../../../shared/components/cards/product-card';
-import axiosInstance from '../../../utils/axiosInstance';
+import ProductCard from '@src/shared/components/cards/product-card';
+import axiosInstance from '@src/utils/axiosInstance';
 
 const MIN = 0;
 const MAX = 1500;

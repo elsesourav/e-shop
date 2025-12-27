@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AlignLeft, ChevronDown } from 'lucide-react';
-import { navItems } from '../../../configs/constants';
+import { navItems } from '@src/configs/constants';
 import Link from 'next/link';
 import HeaderProfile from './header-profile';
 

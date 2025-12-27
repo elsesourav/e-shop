@@ -1,118 +1,73 @@
 'use client';
 
 import Pagination from '@packages/components/pagination';
-import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { Range } from 'react-range';
-import ProductCard from '@src/shared/components/cards/product-card';
+import ProductCard from 'src/shared/components/cards/product-card';
 import axiosInstance from '@src/utils/axiosInstance';
-
-const MIN = 0;
-const MAX = 1500;
-
-const COLORS = [
-  { name: 'Red', value: '#FF5733' },
-  { name: 'Green', value: '#33FF57' },
-  { name: 'Blue', value: '#3357FF' },
-  { name: 'Yellow', value: '#F1C40F' },
-  { name: 'Purple', value: '#9B59B6' },
-  { name: 'Orange', value: '#E67E22' },
-  { name: 'Turquoise', value: '#1ABC9C' },
-  { name: 'Dark Blue', value: '#2C3E50' },
-  { name: 'Gray', value: '#7F8C8D' },
-  { name: 'Dark Gray', value: '#34495E' },
-];
-
-const SIZES = [
-  { name: 'Extra Small', value: 'XS' },
-  { name: 'Small', value: 'S' },
-  { name: 'Medium', value: 'M' },
-  { name: 'Large', value: 'L' },
-  { name: 'Extra Large', value: 'XL' },
-  { name: '2X Large', value: '2XL' },
-  { name: '3X Large', value: '3XL' },
-];
+import ShopCategories from '@packages/constant/categories';
 
 const Products = () => {
   const router = useRouter();
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [isProductLoading, setIsProductLoading] = useState<boolean>(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1499]);
+  const [isShopsLoading, setIsShopsLoading] = useState<boolean>(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedSize, setSelectedSize] = useState<string[]>([]);
-  const [selectedColor, setSelectedColor] = useState<string[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [page, setPage] = useState<number>(1);
-  const [products, setProducts] = useState<any[]>([]);
+  const [shops, setShops] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [tempPriceRange, setTempPriceRange] = useState<[number, number]>([
-    0, 1499,
-  ]);
 
   const getSearchParamsURL = () => {
     const query = new URLSearchParams();
-    query.append('minPrice', priceRange[0].toString());
-    query.append('maxPrice', priceRange[1].toString());
     if (selectedCategories.length > 0)
       query.append('categories', selectedCategories.join(','));
-    if (selectedSize.length > 0) query.append('sizes', selectedSize.join(','));
-    if (selectedColor.length > 0)
-      query.append('colors', selectedColor.join(','));
-    query.append('page', page.toString());
+    if (selectedCountries.length > 0)
+      query.append('countries', selectedCountries.join(','));
     query.append('limit', '12');
     return query.toString();
   };
 
-  const fetchFilteredProducts = async () => {
-    setIsProductLoading(true);
+  const updateURL = () => {
+    const query = getSearchParamsURL();
+    router.replace(`/shops?${decodeURIComponent(query)}`);
+  };
+
+  const fetchFilteredShops = async () => {
+    setIsShopsLoading(true);
     try {
       const params = {
-        minPrice: priceRange[0],
-        maxPrice: priceRange[1],
         categories:
           selectedCategories.length > 0
             ? selectedCategories.join(',')
             : undefined,
-        sizes: selectedSize.length > 0 ? selectedSize.join(',') : undefined,
-        colors: selectedColor.length > 0 ? selectedColor.join(',') : undefined,
+        countries:
+          selectedCountries.length > 0
+            ? selectedCountries.join(',')
+            : undefined,
         page,
         limit: 12,
       };
 
       const response = await axiosInstance.get(
-        `/products/api/get-filtered-products`,
+        `/shops/api/get-filtered-shops`,
         { params }
       );
-      setProducts(response.data.products);
+      setShops(response.data.shops);
       setTotalPages(response.data.pagination.totalPages);
-      setIsProductLoading(false);
+      setIsShopsLoading(false);
     } catch (error) {
-      console.error('Error fetching filtered products:', error);
+      console.error('Error fetching filtered shops:', error);
     } finally {
-      setIsProductLoading(false);
+      setIsShopsLoading(false);
     }
-  };
-
-  const updateURL = () => {
-    const query = getSearchParamsURL();
-    router.replace(`/products?${decodeURIComponent(query)}`);
   };
 
   useEffect(() => {
     updateURL();
-    fetchFilteredProducts();
-  }, [page, selectedCategories, selectedSize, selectedColor, priceRange]);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const res = await axiosInstance.get('products/api/get-categories');
-      return res.data;
-    },
-    staleTime: 1000 * 60 * 30, // 30 minutes cache
-  });
+    fetchFilteredShops();
+  }, [page, selectedCategories]);
 
   const toggleCategory = (category: string) => {
     setPage(1); // Reset to first page on filter change
@@ -125,107 +80,58 @@ const Products = () => {
     });
   };
 
+  const toggleCountry = (country: string) => {
+    setPage(1); // Reset to first page on filter change
+    setSelectedCountries((prevCountries) => {
+      if (prevCountries.includes(country)) {
+        return prevCountries.filter((c) => c !== country);
+      } else {
+        return [...prevCountries, country];
+      }
+    });
+  };
+
   return (
     <div className="w-full bg-[#f5f5f5] pb-10">
       <div className="w-[90%] lg:w-[84%] m-auto">
         <div className="pb-[50px]">
           <h1 className="md:pt-[40px] font-semibold text-[44px] leading-1 mb-[14px] font-jost">
-            All Products
+            All Shops
           </h1>
 
           <Link href="/" className="text-[#55585b] hover:underline">
             Home
           </Link>
           <span className="inline-block p-[2px] mx-1 my-1 bg-[#a8acb0] rounded-full" />
-          <span className="text-[#55585b]">All Products</span>
+          <span className="text-[#55585b]">All Shops</span>
         </div>
 
         <div className="w-full flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
           <aside className="w-full md:w-[270px] bg-white !rounded p-4 space-y-6 shadow-md h-fit">
-            <h3 className="text-xl font-Poppins font-medium">Price Range</h3>
-            <div className="ml-2">
-              <Range
-                step={10}
-                min={MIN}
-                max={MAX}
-                values={tempPriceRange}
-                onChange={(values) =>
-                  setTempPriceRange(values as [number, number])
-                }
-                onFinalChange={(values) => {
-                  if (debounceTimer.current)
-                    clearTimeout(debounceTimer.current);
-                  debounceTimer.current = setTimeout(() => {
-                    setPriceRange(values as [number, number]);
-                  }, 1000);
-                }}
-                renderTrack={({ props, children }) => {
-                  const [min, max] = tempPriceRange;
-                  const percentageLeft = ((min - MIN) / (MAX - MIN)) * 100;
-                  const percentageRight = ((max - MIN) / (MAX - MIN)) * 100;
-
-                  return (
-                    <div
-                      {...props}
-                      className="h-[6px] w-full bg-gray-200 rounded relative"
-                      style={{ ...props.style }}
-                    >
-                      <div
-                        className="absolute h-full bg-blue-600 rounded"
-                        style={{
-                          left: `${percentageLeft}%`,
-                          width: `${percentageRight - percentageLeft}%`,
-                        }}
-                      />
-                      {children}
-                    </div>
-                  );
-                }}
-                renderThumb={({ props }) => {
-                  const { key, ...rest } = props;
-                  return (
-                    <div
-                      key={key}
-                      {...rest}
-                      className="size-[18px] bg-white border-2 border-blue-600 rounded-full shadow focus:outline-none"
-                    />
-                  );
-                }}
-              />
-              <div className="flex justify-between text-sm mt-2">
-                <span>₹{tempPriceRange[0]}</span>
-                <span>₹{tempPriceRange[1]}</span>
-              </div>
-            </div>
-
             {/* Categories */}
             <h3 className="text-xl font-Poppins font-medium border-b border-b-slate-300 pb-1">
               Categories
             </h3>
             <div className="max-h-[300px] !mt-4 overflow-y-auto custom-scrollbar pr-2">
               <ul className="space-y-2">
-                {isLoading ? (
-                  <p>Loading...</p>
-                ) : (
-                  data.categories.map((category: any) => (
-                    <li
-                      key={category}
-                      className="flex items-center justify-between"
-                    >
-                      <label className="flex items-center gap-3 text-sm text-gray-700">
-                        <input
-                          type="checkbox"
-                          className="accent-blue-600"
-                          value={category}
-                          checked={selectedCategories.includes(category)}
-                          onChange={(e) => toggleCategory(category)}
-                        />
-                        {category}
-                      </label>
-                    </li>
-                  ))
-                )}
+                {ShopCategories.map((category: any) => (
+                  <li
+                    key={category}
+                    className="flex items-center justify-between"
+                  >
+                    <label className="flex items-center gap-3 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        className="accent-blue-600"
+                        value={category}
+                        checked={selectedCategories.includes(category)}
+                        onChange={(e) => toggleCategory(category)}
+                      />
+                      {category}
+                    </label>
+                  </li>
+                ))}
               </ul>
             </div>
 

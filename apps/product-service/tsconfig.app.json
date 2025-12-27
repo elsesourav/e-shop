@@ -10,8 +10,8 @@
     "src/**/*.ts",
     "src/**/*.json",
     "../../packages/**/*.ts",
-    "../seller-ui/src/utils/ai-enhancements.ts"
-, "src/controllers/old-not-need.controller.ts"  ],
+    "../../packages/constant/ai-enhancements.ts"
+  ],
   "exclude": [
     "out-tsc",
     "dist",

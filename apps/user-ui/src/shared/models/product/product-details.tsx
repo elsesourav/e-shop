@@ -1,6 +1,6 @@
 'use client';
 
-import { ProductType } from '@/packages/types';
+import { ProductType } from '@packages/types';
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,16 +15,16 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { CartIcon } from '../../../assets/svg';
-import useDeviceTracking from '../../../hooks/useDeviceTracking';
-import useLocationTracking from '../../../hooks/useLocationTracking';
-import useUser from '../../../hooks/useUser';
-import { useStore } from '../../../store';
-import { formatPrice } from '../../../utils/utils';
-import ImageMagnifier from '../../components/image-magnifier';
-import Ratings from '../../components/ratings';
-import ProductCard from '../../components/cards/product-card';
-import axiosInstance from '../../../utils/axiosInstance';
+import { CartIcon } from '@src/assets/svg';
+import useDeviceTracking from '@src/hooks/useDeviceTracking';
+import useLocationTracking from '@src/hooks/useLocationTracking';
+import useUser from '@src/hooks/useUser';
+import { useStore } from '@src/store';
+import { formatPrice } from '@src/utils/utils';
+import ImageMagnifier from '@src/shared/components/image-magnifier';
+import Ratings from '@src/shared/components/ratings';
+import ProductCard from '@src/shared/components/cards/product-card';
+import axiosInstance from '@src/utils/axiosInstance';
 
 const ProductDetails = ({ product }: { product: ProductType }) => {
   const [currentImage, setCurrentImage] = useState<string>(

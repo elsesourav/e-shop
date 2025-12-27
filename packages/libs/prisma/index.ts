@@ -1,6 +1,5 @@
 import * as dotenv from "dotenv";
-import { PrismaClient } from "../../../generated/prisma";
-dotenv.config();
+import { PrismaClient } from "@prisma/client";
 
 declare global {
   namespace globalThis {

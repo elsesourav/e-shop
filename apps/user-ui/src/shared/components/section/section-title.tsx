@@ -1,4 +1,4 @@
-import TitleBorder from "../../../assets/svg/title-border";
+import TitleBorder from '@src/assets/svg/title-border';
 
 const SectionTitle = ({ title }: { title: string }) => {
   return (

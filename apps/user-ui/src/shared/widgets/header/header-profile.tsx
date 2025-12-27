@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { CartIcon, HeartIcon, ProfileIcon } from '../../../assets/svg';
-import useUser from '../../../hooks/useUser';
-import { useStore } from '../../../store';
+import { CartIcon, HeartIcon, ProfileIcon } from '@src/assets/svg';
+import useUser from '@src/hooks/useUser';
+import { useStore } from '@src/store';
 
 const HeaderProfile = () => {
   const { user, isLoading } = useUser();

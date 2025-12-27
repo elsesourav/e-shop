@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { useForm } from 'react-hook-form';
-import ShopCategories from 'apps/seller-ui/src/utils/categories';
+import ShopCategories from '@packages/constant/categories';
 
 const CreateShop = ({
   sellerId,

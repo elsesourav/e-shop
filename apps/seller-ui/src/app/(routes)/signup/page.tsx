@@ -4,11 +4,11 @@ import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
 // import { useRouter } from 'next/navigation';
+import CreateShop from '@src/shared/modules/auth/create-shop';
+import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import Countries from './../../../utils/countries';
-import Link from 'next/link';
-import CreateShop from 'apps/seller-ui/src/shared/modules/auth/create-shop';
+import Countries from '@packages/constant/countries';
 import StripeLogo from '../../assets/svg/stripe-logo';
 
 type FormData = {

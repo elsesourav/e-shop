@@ -2,7 +2,7 @@
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import axiosInstance from '../../../utils/axiosInstance';
+import axiosInstance from '@src/utils/axiosInstance';
 import HeaderBottom from './header-bottom';
 import HeaderProfile from './header-profile';
 

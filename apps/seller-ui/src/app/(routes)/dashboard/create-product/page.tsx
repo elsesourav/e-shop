@@ -1,7 +1,7 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
 import ImagePlaceholder from 'apps/seller-ui/src/shared/components/image-placeholder';
-import { enhancements } from 'apps/seller-ui/src/utils/ai-enhancements';
+import { enhancements } from 'packages/constant/ai-enhancements';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import { ChevronRight, Wand, X } from 'lucide-react';
 import Image from 'next/image';

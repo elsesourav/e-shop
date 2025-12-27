@@ -4,11 +4,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import useDeviceTracking from '../../../hooks/useDeviceTracking';
-import useLocationTracking from '../../../hooks/useLocationTracking';
-import useUser from '../../../hooks/useUser';
-import { useStore } from '../../../store';
-import { formatPrice } from '../../../utils/utils';
+import useDeviceTracking from '@src/hooks/useDeviceTracking';
+import useLocationTracking from '@src/hooks/useLocationTracking';
+import useUser from '@src/hooks/useUser';
+import { useStore } from '@src/store';
+import { formatPrice } from '@src/utils/utils';
 
 const CartPage = () => {
   const router = useRouter();
