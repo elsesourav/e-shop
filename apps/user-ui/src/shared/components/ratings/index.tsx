@@ -26,8 +26,8 @@ const Ratings: FC<RatingsProps> = ({ ratings, size = 20, className = '' }) => {
     stars.push(
       <FullStar
         key={`full-${i}`}
-        width={size}
-        height={size}
+        width={size * 1.1}
+        height={size * 1.1}
         className="text-yellow-500"
       />
     );
@@ -38,8 +38,8 @@ const Ratings: FC<RatingsProps> = ({ ratings, size = 20, className = '' }) => {
     stars.push(
       <HalfStar
         key="half"
-        width={size}
-        height={size}
+        width={size * 1.1}
+        height={size * 1.1}
         className="text-yellow-500"
       />
     );
@@ -52,7 +52,7 @@ const Ratings: FC<RatingsProps> = ({ ratings, size = 20, className = '' }) => {
         key={`empty-${i}`}
         width={size}
         height={size}
-        className="text-gray-400"
+        className="text-yellow-500"
       />
     );
   }

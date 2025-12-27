@@ -7,6 +7,322 @@ import imagekit from '@packages/libs/imagekit';
 import prisma from '@packages/libs/prisma';
 import { NextFunction, Request, Response } from 'express';
 
+// get product categories
+export const getCategories = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const config = await prisma.siteConfigs.findFirst();
+    if (!config) {
+      return next(new NotFoundError('Site configuration not found'));
+    }
+    return res.status(200).json({
+      categories: config.categories,
+      subCategories: config.subCategories,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+//  ╔══════════════════════════════════════════════════════════════════════════════╗
+//  ║                          ● DISCOUNT CODE ●                                   ║
+//  ╚══════════════════════════════════════════════════════════════════════════════╝
+
+// Create Discount code
+export const createDiscountCode = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      discountName,
+      discountType,
+      discountValue,
+      discountCode,
+      minAmount,
+      maxAmount,
+      usageLimit,
+      expiresAt,
+      isActive = true,
+    } = req.body;
+
+    if (!discountName || !discountType || !discountValue || !discountCode) {
+      return next(new ValidationError('All required fields must be provided!'));
+    }
+
+    const isDiscountCodeExists = await prisma.discountCodes.findUnique({
+      where: { code: discountCode },
+    });
+
+    if (isDiscountCodeExists) {
+      return next(
+        new ValidationError(
+          'Discount code already exists, please use a different code'
+        )
+      );
+    }
+
+    const code = await prisma.discountCodes.create({
+      data: {
+        name: discountName,
+        type: discountType,
+        value: parseFloat(discountValue),
+        code: discountCode,
+        sellerId: req.seller?.id,
+        minAmount: minAmount ? parseFloat(minAmount) : 0,
+        maxAmount: maxAmount ? parseFloat(maxAmount) : null,
+        usageLimit: usageLimit ? parseInt(usageLimit, 10) : 0,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        isActive,
+      },
+    });
+
+    return res.status(201).json({ success: true, code });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get all discount codes
+export const getDiscountCodes = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { activeOnly } = req.query;
+
+    const where: any = { sellerId: req.seller?.id };
+
+    // Filter by active status if requested
+    if (activeOnly === 'true') {
+      where.isActive = true;
+      // Also check if not expired
+      where.OR = [{ expiresAt: null }, { expiresAt: { gte: new Date() } }];
+    }
+
+    const discountCodes = await prisma.discountCodes.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.status(200).json({ success: true, discountCodes });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Delete discount code
+export const deleteDiscountCode = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const sellerId = req.seller?.id;
+
+    const discountCode = await prisma.discountCodes.findUnique({
+      where: { id },
+      select: { id: true, sellerId: true },
+    });
+
+    if (!discountCode) {
+      return next(new NotFoundError('Discount code not found'));
+    }
+
+    if (discountCode.sellerId !== sellerId) {
+      return next(
+        new ValidationError(
+          'You are not authorized to delete this discount code'
+        )
+      );
+    }
+
+    await prisma.discountCodes.delete({ where: { id } });
+
+    return res
+      .status(200)
+      .json({ success: true, message: 'Discount code deleted successfully' });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Update discount code
+export const updateDiscountCode = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const {
+      discountName,
+      discountType,
+      discountValue,
+      minAmount,
+      maxAmount,
+      usageLimit,
+      expiresAt,
+      isActive,
+    } = req.body;
+
+    const discountCode = await prisma.discountCodes.findUnique({
+      where: { id },
+      select: { id: true, sellerId: true },
+    });
+
+    if (!discountCode) {
+      return next(new NotFoundError('Discount code not found'));
+    }
+
+    if (discountCode.sellerId !== req.seller?.id) {
+      return next(
+        new ValidationError(
+          'You are not authorized to update this discount code'
+        )
+      );
+    }
+
+    const updateData: any = {};
+    if (discountName) updateData.name = discountName;
+    if (discountType) updateData.type = discountType;
+    if (discountValue) updateData.value = parseFloat(discountValue);
+    if (minAmount !== undefined) updateData.minAmount = parseFloat(minAmount);
+    if (maxAmount !== undefined) updateData.maxAmount = parseFloat(maxAmount);
+    if (usageLimit !== undefined)
+      updateData.usageLimit = parseInt(usageLimit, 10);
+    if (expiresAt !== undefined)
+      updateData.expiresAt = expiresAt ? new Date(expiresAt) : null;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const updatedCode = await prisma.discountCodes.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return res.status(200).json({ success: true, code: updatedCode });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Validate and apply discount code
+export const validateDiscountCode = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { code, orderAmount } = req.body;
+
+    if (!code || !orderAmount) {
+      return next(new ValidationError('Code and order amount are required'));
+    }
+
+    const discountCode = await prisma.discountCodes.findUnique({
+      where: { code },
+    });
+
+    if (!discountCode) {
+      return next(new NotFoundError('Invalid discount code'));
+    }
+
+    // Check if active
+    if (!discountCode.isActive) {
+      return next(
+        new ValidationError('This discount code is no longer active')
+      );
+    }
+
+    // Check if expired
+    if (discountCode.expiresAt && new Date() > discountCode.expiresAt) {
+      return next(new ValidationError('This discount code has expired'));
+    }
+
+    // Check usage limit
+    if (
+      discountCode.usageLimit &&
+      discountCode.usageLimit > 0 &&
+      discountCode.usedCount >= discountCode.usageLimit
+    ) {
+      return next(
+        new ValidationError('This discount code has reached its usage limit')
+      );
+    }
+
+    // Check minimum amount
+    if (discountCode.minAmount && orderAmount < discountCode.minAmount) {
+      return next(
+        new ValidationError(
+          `Minimum order amount of ${discountCode.minAmount} required to use this code`
+        )
+      );
+    }
+
+    // Calculate discount
+    let discountAmount = 0;
+    if (discountCode.type === 'percentage') {
+      discountAmount = (orderAmount * discountCode.value) / 100;
+    } else if (discountCode.type === 'fixed') {
+      discountAmount = discountCode.value;
+    }
+
+    // Apply maximum discount limit if set
+    if (discountCode.maxAmount && discountAmount > discountCode.maxAmount) {
+      discountAmount = discountCode.maxAmount;
+    }
+
+    return res.status(200).json({
+      success: true,
+      valid: true,
+      discountAmount,
+      finalAmount: orderAmount - discountAmount,
+      discountCode: {
+        code: discountCode.code,
+        name: discountCode.name,
+        type: discountCode.type,
+        value: discountCode.value,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Increment discount code usage
+export const incrementDiscountUsage = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return next(new ValidationError('Discount code is required'));
+    }
+
+    const discountCode = await prisma.discountCodes.update({
+      where: { code },
+      data: {
+        usedCount: {
+          increment: 1,
+        },
+      },
+    });
+
+    return res.status(200).json({ success: true, discountCode });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 //  ╔══════════════════════════════════════════════════════════════════════════════╗
 //  ║                          ● PRODUCT CREATE ●                                  ║
 //  ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -1047,53 +1363,6 @@ export const getAllProducts = async (
   }
 };
 
-// Get brands based on category
-export const getBrands = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { category, subCategory } = req.query;
-
-    const where: any = {
-      status: 'ACTIVE',
-      isDeleted: false,
-    };
-
-    if (category) {
-      where.category = category as string;
-    }
-
-    if (subCategory) {
-      where.subCategory = subCategory as string;
-    }
-
-    const brands = await prisma.products.findMany({
-      where,
-      distinct: ['brand'],
-      select: {
-        brand: true,
-      },
-      orderBy: {
-        brand: 'asc',
-      },
-    });
-
-    // Filter out empty brands and map to array of strings
-    const brandList = brands
-      .map((item) => item.brand)
-      .filter((brand) => brand && brand.trim() !== '');
-
-    return res.status(200).json({
-      success: true,
-      brands: brandList,
-    });
-  } catch (error) {
-    return next(error);
-  }
-};
-
 // Get filtered products
 export const getFilteredProducts = async (
   req: Request,
@@ -1223,7 +1492,7 @@ export const getFilteredEvents = async (
       sortOrder = 'desc',
       page = 1,
       limit = 20,
-    } = { ...req.body, ...req.query };
+    } = req.body;
 
     const parsedPage = Math.max(1, parseInt(page as any, 10));
     const parsedLimit = Math.max(1, parseInt(limit as any, 10));
@@ -1492,6 +1761,402 @@ export const searchProducts = async (
     return res.status(200).json({
       success: true,
       products,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+//  ╔══════════════════════════════════════════════════════════════════════════════╗
+//  ║                          ● SHOP SECTION ●                                    ║
+//  ╚══════════════════════════════════════════════════════════════════════════════╝
+
+// Get filtered shops
+export const getFilteredShops = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { categories = [], countries = [], page = 1, limit = 20 } = req.body;
+
+    const parsedPage = Math.max(1, parseInt(page as any, 10));
+    const parsedLimit = Math.max(1, parseInt(limit as any, 10));
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const filters: Record<string, any> = {};
+
+    if (categories && (categories as string[]).length > 0) {
+      filters.category = {
+        in: Array.isArray(categories)
+          ? categories
+          : String(categories).split(','),
+      };
+    }
+
+    if (countries && (countries as string[]).length > 0) {
+      filters.seller = {
+        country: {
+          in: Array.isArray(countries)
+            ? countries
+            : String(countries).split(','),
+        },
+      };
+    }
+
+    const [shops, totalCount] = await Promise.all([
+      prisma.shops.findMany({
+        where: filters,
+        skip,
+        take: parsedLimit,
+        include: {
+          seller: true,
+          followers: true,
+          products: true,
+        },
+      }),
+      prisma.shops.count({ where: filters }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / parsedLimit);
+
+    return res.status(200).json({
+      shops,
+      pagination: {
+        currentPage: parsedPage,
+        totalPages,
+        totalProducts: totalCount,
+        limit: parsedLimit,
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Top shops
+export const getTopShops = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // Aggregate total sales per shop from orders
+    const topShopsData = await prisma.orders.groupBy({
+      by: ['shopId'],
+      _sum: {
+        totalAmount: true,
+      },
+      orderBy: {
+        _sum: {
+          totalAmount: 'desc',
+        },
+      },
+      take: 10,
+    });
+
+    // Fetch shop details
+    const shopIds = topShopsData.map((data) => data.shopId);
+
+    const shops = await prisma.shops.findMany({
+      where: { id: { in: shopIds } },
+      select: {
+        id: true,
+        name: true,
+        ratings: true,
+        avatar: true,
+        coverBanner: true,
+        address: true,
+        followers: true,
+        category: true,
+      },
+    });
+
+    // Merge sales with shop data
+    const enrichedShops = shops.map((shop) => {
+      const salesData = topShopsData.find((data) => data.shopId === shop.id);
+      return {
+        ...shop,
+        totalSales: salesData?._sum.totalAmount ?? 0,
+      };
+    });
+
+    const top10Shops = enrichedShops
+      .sort((a, b) => b.totalSales - a.totalSales)
+      .slice(0, 10);
+
+    return res.status(200).json({
+      success: true,
+      shops: top10Shops,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+//  ╔══════════════════════════════════════════════════════════════════════════════╗
+//  ║                          ● REVIEW SECTION ●                                  ║
+//  ╚══════════════════════════════════════════════════════════════════════════════╝
+
+// Create product review
+export const createProductReview = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { productId, rating, review } = req.body;
+    const userId = req.user?.id;
+
+    if (!productId || !rating) {
+      return next(new ValidationError('Product ID and rating are required'));
+    }
+
+    if (!userId) {
+      return next(new AuthError('Please login to submit a review'));
+    }
+
+    // Check if product exists
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      return next(new NotFoundError('Product not found'));
+    }
+
+    // Create review
+    const productReview = await prisma.productReviews.create({
+      data: {
+        userId,
+        productId,
+        rating: parseFloat(rating),
+        review,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Optimized: Use database aggregation for average rating
+    const ratingStats = await prisma.productReviews.aggregate({
+      where: { productId },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    const totalReviews = ratingStats._count.rating;
+    const avgRating = ratingStats._avg.rating || 0;
+
+    // Optimized: Use database grouping for star distribution
+    const starGroups = await prisma.productReviews.groupBy({
+      by: ['rating'],
+      where: { productId },
+      _count: { rating: true },
+    });
+
+    const starDistribution = {
+      fiveStars: 0,
+      fourStars: 0,
+      threeStars: 0,
+      twoStars: 0,
+      oneStar: 0,
+    };
+
+    starGroups.forEach((group) => {
+      const star = Math.round(group.rating);
+      const count = group._count.rating;
+      if (star === 5) starDistribution.fiveStars += count;
+      else if (star === 4) starDistribution.fourStars += count;
+      else if (star === 3) starDistribution.threeStars += count;
+      else if (star === 2) starDistribution.twoStars += count;
+      else if (star === 1) starDistribution.oneStar += count;
+    });
+
+    // Update or create product ratings
+    await prisma.productRatings.upsert({
+      where: { productId },
+      create: {
+        productId,
+        averageRating: avgRating,
+        totalReviews,
+        ...starDistribution,
+      },
+      update: {
+        averageRating: avgRating,
+        totalReviews,
+        ...starDistribution,
+      },
+    });
+
+    // Also update the legacy ratings field on products for backwards compatibility
+    await prisma.products.update({
+      where: { id: productId },
+      data: { ratings: avgRating },
+    });
+
+    return res.status(201).json({ success: true, review: productReview });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get product reviews
+export const getProductReviews = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { productId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [reviews, total] = await Promise.all([
+      prisma.productReviews.findMany({
+        where: { productId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: Number(limit),
+      }),
+      prisma.productReviews.count({ where: { productId } }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      reviews,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Create shop review
+export const createShopReview = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { shopId, rating, reviews } = req.body;
+    const userId = req.user?.id;
+
+    if (!shopId || !rating) {
+      return next(new ValidationError('Shop ID and rating are required'));
+    }
+
+    if (!userId) {
+      return next(new AuthError('Please login to submit a review'));
+    }
+
+    // Check if shop exists
+    const shop = await prisma.shops.findUnique({
+      where: { id: shopId },
+    });
+
+    if (!shop) {
+      return next(new NotFoundError('Shop not found'));
+    }
+
+    // Create review
+    const shopReview = await prisma.shopReviews.create({
+      data: {
+        userId,
+        shopId,
+        rating: parseFloat(rating),
+        reviews,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    // Optimized: Use database aggregation for shop rating
+    const ratingStats = await prisma.shopReviews.aggregate({
+      where: { shopId },
+      _avg: { rating: true },
+    });
+
+    const avgRating = ratingStats._avg.rating || 0;
+
+    await prisma.shops.update({
+      where: { id: shopId },
+      data: { ratings: avgRating },
+    });
+
+    return res.status(201).json({ success: true, review: shopReview });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get shop reviews
+export const getShopReviews = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { shopId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [reviews, total] = await Promise.all([
+      prisma.shopReviews.findMany({
+        where: { shopId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: Number(limit),
+      }),
+      prisma.shopReviews.count({ where: { shopId } }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      reviews,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (error) {
     return next(error);

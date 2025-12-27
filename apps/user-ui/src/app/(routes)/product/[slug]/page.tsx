@@ -33,7 +33,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 const page = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;
   const productDetails = await fetchProductDetails(slug);
-  console.log(productDetails);
   
   return <ProductDetails product={productDetails} />
 }

@@ -10,6 +10,7 @@ interface ImageMagnifierProps {
   magnifierWidth?: number;
   magnifierHeight?: number;
   position?: 'left' | 'right';
+  positionOffset?: number;
 }
 
 const ImageMagnifier = ({
@@ -19,6 +20,7 @@ const ImageMagnifier = ({
   magnifierWidth,
   magnifierHeight,
   position = 'right',
+  positionOffset = 0,
 }: ImageMagnifierProps) => {
   const [showMagnifier, setShowMagnifier] = useState(false);
   const [[x, y], setXY] = useState([0, 0]);
@@ -152,8 +154,8 @@ const ImageMagnifier = ({
             position: 'fixed',
             left:
               position === 'right'
-                ? imgPosition.left + imgWidth + 20
-                : imgPosition.left - (magnifierWidth || imgWidth) - 20,
+                ? imgPosition.left + imgWidth + 20 + positionOffset
+                : imgPosition.left - (magnifierWidth || imgWidth) - 20 - positionOffset,
             top: imgPosition.top,
             zIndex: 100,
             width: magnifierWidth ? `${magnifierWidth}px` : `${imgWidth}px`, // Match main image width or use custom width

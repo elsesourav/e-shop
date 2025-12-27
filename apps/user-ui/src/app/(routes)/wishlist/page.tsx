@@ -7,7 +7,7 @@ import useDeviceTracking from '../../../hooks/useDeviceTracking';
 import useLocationTracking from '../../../hooks/useLocationTracking';
 import useUser from '../../../hooks/useUser';
 import { useStore } from '../../../store';
-import { formatNumber } from '../../../utils/utils';
+import { formatPrice } from '../../../utils/utils';
 
 const WishlistPage = () => {
   const { user } = useUser();
@@ -95,7 +95,7 @@ const WishlistPage = () => {
                       <span>{item?.title}</span>
                     </td>
                     <td className="px-6 text-lg">
-                      ₹{formatNumber(item?.salePrice)}
+                      ₹{formatPrice(item?.salePrice)}
                     </td>
                     <td>
                       <div className="flex items-center justify-center border border-gray-200 rounded-[20px] w-[90px] p-[2px]">

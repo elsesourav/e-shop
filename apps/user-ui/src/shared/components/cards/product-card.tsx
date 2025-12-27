@@ -1,16 +1,16 @@
-import Link from 'next/link';
-import Ratings from '../ratings';
-import { useEffect, useState } from 'react';
 import { Eye, Heart } from 'lucide-react';
-import ProductDetailsCard from './product-details-card';
-import { formatNumber } from '../../../utils/utils';
-import { useStore } from '../../../store';
-import useUser from '../../../hooks/useUser';
-import useLocationTracking from '../../../hooks/useLocationTracking';
-import useDeviceTracking from '../../../hooks/useDeviceTracking';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { CartIcon } from '../../../assets/svg';
+import useDeviceTracking from '../../../hooks/useDeviceTracking';
+import useLocationTracking from '../../../hooks/useLocationTracking';
+import useUser from '../../../hooks/useUser';
+import { useStore } from '../../../store';
+import { formatPrice } from '../../../utils/utils';
+import Ratings from '../ratings';
+import ProductDetailsCard from './product-details-card';
 
-const ProductCard = ({
+const  ProductCard = ({
   product,
   isEvent,
 }: {
@@ -65,7 +65,7 @@ const ProductCard = ({
   console.log(product);
 
   return (
-    <div className="w-full min-h-[350px] h-max bg-white rounded-lg relative">
+    <div className="w-full min-h-[350px] h-max bg-white rounded-lg relative hover:shadow-lg transition-shadow duration-300 cursor-pointer">
       {isEvent && (
         <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-semibold px-2 py-1 rounded-sm shadow-md">
           OFFER
@@ -117,12 +117,12 @@ const ProductCard = ({
       <div className="mt-3 flex justify-between items-center px-2">
         <div className="flex items-center gap-2">
           <span className="font-bold font-lg text-gray-900">
-            ₹{formatNumber(product?.salePrice)}
+            ₹{formatPrice(product?.salePrice, true)}
           </span>
           <span className="font-base text-sm text-gray-600 line-through">
-            ₹{formatNumber(product?.regularPrice)}
+            ₹{formatPrice(product?.regularPrice, true)}
           </span>
-          <span className="font-bold text-sm text-gray-900">
+          <span className="font-semibold text-sm text-green-600">
             (
             {(
               ((product?.regularPrice - product?.salePrice) /

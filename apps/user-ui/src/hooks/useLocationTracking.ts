@@ -1,8 +1,7 @@
-'user client';
-import { useState, useEffect } from 'react';
+'use client';
+import { useEffect, useState } from 'react';
 const LOCATION_STORAGE_KEY = 'user_location_tracking';
 const LOCATION_EXPIRY_DAYS = 20;
-
 
 export type LocationType = {
   continent_code: string;
@@ -19,6 +18,9 @@ export type LocationType = {
 };
 
 const getStoredLocation = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
   const storedData = window.localStorage.getItem(LOCATION_STORAGE_KEY);
   if (!storedData) return null;
 
@@ -28,11 +30,20 @@ const getStoredLocation = () => {
   return isExpired ? null : parsedData;
 };
 
-
 const useLocationTracking = () => {
-  const [location, setLocation] = useState<LocationType | null>(getStoredLocation());
+  const [location, setLocation] = useState<LocationType | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    const stored = getStoredLocation();
+    if (stored) {
+      setLocation(stored);
+    }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (location) return;
 
     const fetchLocation = async () => {
@@ -65,7 +76,7 @@ const useLocationTracking = () => {
     };
 
     fetchLocation();
-  }, [location]);
+  }, [location, mounted]);
 
   return location;
 };

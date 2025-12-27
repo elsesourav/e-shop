@@ -1,43 +1,58 @@
 import isAuthenticated from '@packages/middleware/isAuthenticated';
 import express, { Router } from 'express';
+import { getCategories } from '../controllers/categories.controller';
 import {
   createDiscountCode,
-  createProduct,
-  createProductReview,
-  createShopReview,
   deleteDiscountCode,
+  getDiscountCodes,
+  incrementDiscountUsage,
+  updateDiscountCode,
+  validateDiscountCode,
+} from '../controllers/discount-codes.controller';
+import {
+  createProduct,
   deleteDraftProduct,
   deleteProduct,
   deleteProductImage,
   getAllProducts,
-  getCategories,
-  getDiscountCodes,
+  getBrands,
   getDraftProducts,
+  getFilteredEvents,
+  getFilteredProducts,
   getProductById,
-  getProductReviews,
   getRelatedProducts,
   getShopProducts,
   getShopProductStats,
-  getShopReviews,
-  incrementDiscountUsage,
   incrementProductView,
   publishDraftProduct,
   recoverProduct,
   saveProductDraft,
-  updateDiscountCode,
+  searchProducts,
   uploadProductImage,
-  validateDiscountCode,
 } from '../controllers/products.controller';
+import {
+  createProductReview,
+  createShopReview,
+  getProductReviews,
+  getShopReviews,
+} from '../controllers/reviews.controller';
+import { getFilteredShops, getTopShops } from '../controllers/shops.controller';
 
 const router: Router = express.Router();
 
 // product categories
 router.get('/get-categories', getCategories);
+router.get('/get-brands', getBrands);
 
 // Get all products (public - for customers)
 router.get('/get-all-products', getAllProducts);
+router.get('/get-filtered-products', getFilteredProducts);
+router.get('/get-filtered-offers', getFilteredEvents);
+router.get('/get-filtered-shops', getFilteredShops);
+router.get('/get-top-shops', getTopShops);
 router.get('/get-product/:identifier', getProductById); // Get by ID or slug
 router.get('/get-related-products/:productId', getRelatedProducts);
+router.get('/search-products', searchProducts);
 
 // discount codes
 router.post('/create-discount-code', isAuthenticated, createDiscountCode);

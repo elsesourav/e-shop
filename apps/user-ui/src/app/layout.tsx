@@ -1,4 +1,5 @@
 import { Oregano, Poppins, Roboto } from 'next/font/google';
+import Footer from '../shared/widgets/footer';
 import Header from '../shared/widgets/header';
 import './global.css';
 import Providers from './providers';
@@ -39,6 +40,7 @@ export default function RootLayout({
         <Providers>
           <Header />
           {children}
+          <Footer />
         </Providers>
       </body>
     </html>

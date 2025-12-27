@@ -8,7 +8,7 @@ import useDeviceTracking from '../../../hooks/useDeviceTracking';
 import useLocationTracking from '../../../hooks/useLocationTracking';
 import useUser from '../../../hooks/useUser';
 import { useStore } from '../../../store';
-import { formatNumber } from '../../../utils/utils';
+import { formatPrice } from '../../../utils/utils';
 import ImageMagnifier from '../../components/image-magnifier';
 import Ratings from '../ratings';
 
@@ -20,8 +20,12 @@ const ProductDetailsCard = ({
   setIsOpen: (isOpen: boolean) => void;
 }) => {
   const [activeImage, setActiveImage] = useState<number>(0);
-  const [selectedColor, setSelectedColor] = useState<string>('');
-  const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedColor, setSelectedColor] = useState<string>(
+    product?.colors?.[0] || ''
+  );
+  const [selectedSize, setSelectedSize] = useState<string>(
+    product?.sizes?.[0] || ''
+  );
   const [quantity, setQuantity] = useState<number>(1);
 
   const { user } = useUser();
@@ -47,35 +51,57 @@ const ProductDetailsCard = ({
 
   const router = useRouter();
 
+  const addToCartHandler = () => {
+    if (!isInCart && product?.stock > 0) {
+      const cartData = {
+        ...product,
+        quantity,
+        selectedOptions: {
+          color: selectedColor,
+          size: selectedSize,
+        },
+      };
+
+      addToCart(cartData, userInfo);
+    }
+  };
+
+  const wishlistHandler = () => {
+    if (!isInWishlist) {
+      const wishlistData = {
+        ...product,
+        quantity,
+        selectedOptions: {
+          color: selectedColor,
+          size: selectedSize,
+        },
+      };
+      addToWishlist(wishlistData, userInfo);
+    } else {
+      removeFromWishlist(product.id, userInfo);
+    }
+  };
+
   return (
     <div
       className="fixed flex items-center justify-center top-0 left-0 h-screen w-full bg-[#0000001d] z-50"
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="w-[90%] md:w-[70%] md:mt-14 2xl:mt-0 h-max overflow-scroll min-h-[70vh] p-4 md:p-6 bg-white shadow-md rounded-lg"
+        className="w-[90%] md:w-[70%] md:mt-14 2xl:mt-0 h-max overflow-scroll min-h-[60vh] p-4 md:p-6 bg-white shadow-md rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-full flex flex-col md:flex-row">
-          <div className="w-full md:w-1/2 h-full">
-            <div className="w-full aspect-square mx-auto relative rounded-lg bg-gray-50 z-10">
-              <ImageMagnifier
-                src={product?.images?.[activeImage]?.url}
-                alt={product?.images?.[activeImage]?.url}
-                zoomLevel={4}
-                position="left"
-                magnifierWidth={window.innerWidth * 0.14}
-              />
-            </div>
+          <div className="w-full md:w-1/2 h-full flex gap-4">
             {/* Thumbnail Navigation */}
-            <div className="grid grid-cols-8 gap-2 mt-4">
+            <div className="flex flex-col gap-2 w-16 h-full overflow-y-auto scrollbar-hide">
               {product?.images?.map((image: any, index: number) => (
                 <div
                   key={index}
-                  className={`relative w-full aspect-square cursor-pointer border-2 rounded-md ${
+                  className={`relative w-full aspect-square cursor-pointer border-2 flex-shrink-0 rounded-lg overflow-hidden transition-all duration-200 ${
                     index === activeImage
                       ? 'border-blue-500 ring-1 ring-blue-500'
-                      : 'border-gray-200 hover:border-gray-300'
+                      : 'border-gray-400 hover:border-gray-500'
                   }`}
                   onClick={() => setActiveImage(index)}
                   onMouseEnter={() => setActiveImage(index)}
@@ -84,10 +110,25 @@ const ProductDetailsCard = ({
                     src={image.url}
                     alt={`Thumbnail ${index + 1}`}
                     fill
-                    className="object-cover rounded-[4px]"
+                    className={`object-cover ${
+                      activeImage === index &&
+                      'rounded-xl outline outline-[30px] outline-blue-500'
+                    }`}
                   />
                 </div>
               ))}
+            </div>
+            <div className="flex-1 aspect-square relative rounded-lg bg-gray-50 z-10">
+              <ImageMagnifier
+                src={product?.images?.[activeImage]?.url}
+                alt={product?.images?.[activeImage]?.url}
+                zoomLevel={3}
+                position="left"
+                positionOffset={85}
+                magnifierWidth={
+                  typeof window !== 'undefined' ? window.innerWidth * 0.14 : 0
+                }
+              />
             </div>
           </div>
 
@@ -130,6 +171,7 @@ const ProductDetailsCard = ({
                   </p>
                 </div>
               </div>
+
               {/* Chat With Seller Button */}
               <button
                 className="flex cursor-pointer font-semibold items-center gap-2 px-4 py-2 absolute right-0 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all hover:scale-105 shadow-inner shadow-blue-500"
@@ -148,6 +190,7 @@ const ProductDetailsCard = ({
                 <X size={25} />
               </button>
             </div>
+
             {/* Product Info */}
             <h3 className="text-xl font-semibold mt-3 flex gap-2">
               {product?.brand && (
@@ -210,10 +253,10 @@ const ProductDetailsCard = ({
               {/* Price Section */}
               <div className="flex mt-5 items-center gap-4">
                 <h3 className="text-2xl font-semibold text-gray-900">
-                  ₹{formatNumber(product?.salePrice)}
+                  ₹{formatPrice(product?.salePrice, true)}
                 </h3>
                 <h3 className="text-lg text-gray-600 line-through">
-                  ₹{formatNumber(product?.regularPrice)}
+                  ₹{formatPrice(product?.regularPrice, true)}
                 </h3>
               </div>
             </div>
@@ -221,31 +264,30 @@ const ProductDetailsCard = ({
             <div className="mt-5 flex items-center gap-5">
               <div className="flex items-center rounded-md">
                 <button
-                  className="px-3 cursor-pointer py-2 bg-gray-300 hover:text-gray-400 text-black font-semibold rounded-l-md transition-all duration-200"
+                  className="px-3 cursor-pointer py-2 bg-gray-300 hover:text-blue-700 text-black font-semibold rounded-l-md transition-all duration-200"
                   onClick={() => setQuantity((pre) => Math.max(1, pre - 1))}
                 >
-                  <Minus size={20} />
+                  <Minus size={24} />
                 </button>
-                <span className="px-4 py-1 min-w-14 text-center bg-gray-100">
+                <span className="px-4 py-2 min-w-14 text-center font-semibold bg-gray-100">
                   {quantity}
                 </span>
                 <button
-                  className="px-3 cursor-pointer py-2 bg-gray-300 hover:text-gray-400 text-black font-semibold rounded-r-md transition-all duration-200"
+                  className="px-3 cursor-pointer py-2 bg-gray-300 hover:text-blue-700 text-black font-semibold rounded-r-md transition-all duration-200"
                   onClick={() => setQuantity((pre) => Math.min(99, pre + 1))}
                 >
-                  <Plus size={20} />
+                  <Plus size={24} />
                 </button>
               </div>
 
               <button
                 className={`flex px-4 py-2 items-center gap-2 bg-[#ff5722] text-white font-medium rounded-md shadow-md transition-all ${
                   isInCart
-                    ? 'cursor-not-allowed'
-                    : 'hover:scale-105 hover:bg-[#e64a19]'
+                    ? 'cursor-not-allowed bg-[#ff9c7e]'
+                    : 'hover:scale-95 hover:bg-[#e64a19]'
                 }`}
-                onClick={() =>
-                  !isInCart && addToCart({ ...product, quantity: 1 }, userInfo)
-                }
+                disabled={isInCart || product?.stock === 0}
+                onClick={addToCartHandler}
               >
                 <CartIcon
                   stroke="white"
@@ -257,11 +299,7 @@ const ProductDetailsCard = ({
               </button>
               <button
                 className="opacity-70 cursor-pointer hover:scale-105 transition-all"
-                onClick={() =>
-                  isInWishlist
-                    ? removeFromWishlist(product.id, userInfo)
-                    : addToWishlist({ ...product, quantity: 1 }, userInfo)
-                }
+                onClick={wishlistHandler}
               >
                 <Heart
                   size={34}
@@ -271,6 +309,7 @@ const ProductDetailsCard = ({
                 />
               </button>
             </div>
+
             <div className="mt-3">
               {product?.stock > 0 ? (
                 <span className="text-green-600 font-medium">In Stock</span>

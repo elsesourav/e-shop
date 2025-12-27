@@ -11,7 +11,7 @@
     "src/**/*.json",
     "../../packages/**/*.ts",
     "../seller-ui/src/utils/ai-enhancements.ts"
-  ],
+, "src/controllers/old-not-need.controller.ts"  ],
   "exclude": [
     "out-tsc",
     "dist",

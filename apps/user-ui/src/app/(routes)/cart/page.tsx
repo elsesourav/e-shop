@@ -8,7 +8,7 @@ import useDeviceTracking from '../../../hooks/useDeviceTracking';
 import useLocationTracking from '../../../hooks/useLocationTracking';
 import useUser from '../../../hooks/useUser';
 import { useStore } from '../../../store';
-import { formatNumber } from '../../../utils/utils';
+import { formatPrice } from '../../../utils/utils';
 
 const CartPage = () => {
   const router = useRouter();
@@ -49,7 +49,7 @@ const CartPage = () => {
           : item
       ),
     }));
-  };  
+  };
 
   const removeItem = (productId: string) => {
     removeFromCart(productId, userInfo);
@@ -134,11 +134,11 @@ const CartPage = () => {
                       {item.id === discountedProductId ? (
                         <div className="flex flex-col items-center">
                           <span className="line-through text-gray-500">
-                            ₹{formatNumber(item.salePrice)}
+                            ₹{formatPrice(item.salePrice)}
                           </span>{' '}
                           <span className="text-green-600 font-semibold">
                             ₹
-                            {formatNumber(
+                            {formatPrice(
                               (item.salePrice * (100 - discountPercent)) / 100
                             )}
                           </span>
@@ -147,9 +147,7 @@ const CartPage = () => {
                           </span>
                         </div>
                       ) : (
-                        <span className="">
-                          ₹{formatNumber(item.salePrice)}
-                        </span>
+                        <span className="">₹{formatPrice(item.salePrice)}</span>
                       )}
                     </td>
                     <td className="">
@@ -188,13 +186,13 @@ const CartPage = () => {
                     Discount ({discountPercent}%)
                   </span>
                   <span className="text-green-600">
-                    - ₹{formatNumber(discountAmount)}
+                    - ₹{formatPrice(discountAmount)}
                   </span>
                 </div>
               )}
               <div className="flex justify-between items-center text-[#010f1c] text-[20px] font-[550] pb-3">
                 <span className="font-jost">Subtotal</span>
-                <span>₹{formatNumber(subtotal - discountAmount)}</span>
+                <span>₹{formatPrice(subtotal - discountAmount)}</span>
               </div>
               <hr className="my-4 text-slate-200" />
               <div className="mb-4">
@@ -254,7 +252,7 @@ const CartPage = () => {
 
               <div className="flex justify-between items-center text-[#010f1c] font-[550] pb-3">
                 <span className="font-jost">Total</span>
-                <span>₹{formatNumber(subtotal - discountAmount)}</span>
+                <span>₹{formatPrice(subtotal - discountAmount)}</span>
               </div>
 
               <button

@@ -35,8 +35,10 @@ model users {
   password       String?
   avatar         images[]
   following      String[]         @db.ObjectId
+  followedShops  shops[]          @relation("ShopFollowers", fields: [following], references: [id])
   shopReviews    shopReviews[]
   productReviews productReviews[]
+  orders         orders[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   userAnalytics  userAnalytics?
@@ -112,7 +114,10 @@ model shops {
   sellerId         String             @unique @db.ObjectId
   seller           sellers            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   products         products[]
+  orders           orders[]
   productAnalytics productAnalytics[]
+  followerIds      String[]           @db.ObjectId
+  followers        users[]            @relation("ShopFollowers", fields: [followerIds], references: [id])
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -193,6 +198,7 @@ model products {
   ratings              Float             @default(0.0)
   images               images[]
   reviews              productReviews[]
+  orderItems           orderItems[]
   productRating        productRatings?
   productAnalytics     productAnalytics?
   discountCodes        String[]          @db.ObjectId
@@ -276,4 +282,57 @@ model productAnalytics {
   @@index([views])
   @@index([purchases])
   @@index([lastVisitedAt])
+}
+
+// Order status enum
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+// Payment status enum
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// Order model
+model orders {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String        @db.ObjectId
+  user            users         @relation(fields: [userId], references: [id])
+  shopId          String        @db.ObjectId
+  shop            shops         @relation(fields: [shopId], references: [id])
+  totalAmount     Float
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentMethod   String
+  shippingAddress Json
+  items           orderItems[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Order Item model
+model orderItems {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String   @db.ObjectId
+  order     orders   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String   @db.ObjectId
+  product   products @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  color     String?
+  size      String?
 }
