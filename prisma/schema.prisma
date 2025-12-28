@@ -118,6 +118,7 @@ model shops {
   productAnalytics productAnalytics[]
   followerIds      String[]           @db.ObjectId
   followers        users[]            @relation("ShopFollowers", fields: [followerIds], references: [id])
+  followersCount   Int                @default(0)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 

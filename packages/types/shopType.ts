@@ -30,6 +30,8 @@ export interface ShopType {
   sellerId: string;
   seller?: SellerType;
   products?: ProductType[];
+  followers?: UserType[];
+  followersCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }

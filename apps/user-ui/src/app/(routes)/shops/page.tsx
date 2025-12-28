@@ -1,16 +1,16 @@
 'use client';
 
+import ShopCard from '@/shared/components/cards/shops-card';
 import Pagination from '@packages/components/pagination';
+import ShopCategories from '@packages/constant/categories';
+import Countries from '@packages/constant/countries';
+import axiosInstance from '@src/utils/axiosInstance';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import ProductCard from 'src/shared/components/cards/product-card';
-import axiosInstance from '@src/utils/axiosInstance';
-import ShopCategories from '@packages/constant/categories';
+import { useEffect, useState } from 'react';
 
 const Products = () => {
   const router = useRouter();
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isShopsLoading, setIsShopsLoading] = useState<boolean>(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -25,6 +25,7 @@ const Products = () => {
       query.append('categories', selectedCategories.join(','));
     if (selectedCountries.length > 0)
       query.append('countries', selectedCountries.join(','));
+    query.append('page', page.toString());
     query.append('limit', '12');
     return query.toString();
   };
@@ -51,9 +52,10 @@ const Products = () => {
       };
 
       const response = await axiosInstance.get(
-        `/shops/api/get-filtered-shops`,
+        `/products/api/get-filtered-shops`,
         { params }
       );
+      
       setShops(response.data.shops);
       setTotalPages(response.data.pagination.totalPages);
       setIsShopsLoading(false);
@@ -67,7 +69,7 @@ const Products = () => {
   useEffect(() => {
     updateURL();
     fetchFilteredShops();
-  }, [page, selectedCategories]);
+  }, [page, selectedCategories, selectedCountries]);
 
   const toggleCategory = (category: string) => {
     setPage(1); // Reset to first page on filter change
@@ -115,99 +117,52 @@ const Products = () => {
             </h3>
             <div className="max-h-[300px] !mt-4 overflow-y-auto custom-scrollbar pr-2">
               <ul className="space-y-2">
-                {ShopCategories.map((category: any) => (
-                  <li
-                    key={category}
-                    className="flex items-center justify-between"
-                  >
-                    <label className="flex items-center gap-3 text-sm text-gray-700">
-                      <input
-                        type="checkbox"
-                        className="accent-blue-600"
-                        value={category}
-                        checked={selectedCategories.includes(category)}
-                        onChange={(e) => toggleCategory(category)}
-                      />
-                      {category}
-                    </label>
-                  </li>
-                ))}
+                {ShopCategories.map(
+                  (category: { label: string; value: string }) => (
+                    <li
+                      key={category.value}
+                      className="flex items-center justify-between"
+                    >
+                      <label className="flex items-center gap-3 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          className="accent-blue-600"
+                          value={category.value}
+                          checked={selectedCategories.includes(category.value)}
+                          onChange={(e) => toggleCategory(category.value)}
+                        />
+                        {category.label}
+                      </label>
+                    </li>
+                  )
+                )}
               </ul>
             </div>
 
-            {/* Sizes */}
+            {/* Categories */}
             <h3 className="text-xl font-Poppins font-medium border-b border-b-slate-300 pb-1 mt-2">
-              Sizes
+              Categories
             </h3>
             <div className="max-h-[300px] !mt-4 overflow-y-auto custom-scrollbar pr-2">
               <ul className="space-y-2">
-                {SIZES.map((size) => (
+                {Countries.map((country) => (
                   <li
-                    key={size.value}
+                    key={country.code}
                     className="flex items-center justify-between"
                   >
                     <label className="flex items-center gap-3 text-sm text-gray-700">
                       <input
                         type="checkbox"
                         className="accent-blue-600"
-                        value={size.value}
-                        checked={selectedSize.includes(size.value)}
-                        onChange={(e) => {
-                          setPage(1);
-                          setSelectedSize((prevSizes) => {
-                            if (prevSizes.includes(size.value)) {
-                              return prevSizes.filter((s) => s !== size.value);
-                            } else {
-                              return [...prevSizes, size.value];
-                            }
-                          });
-                        }}
-                      />
-                      <span className="h-4 w-8 flex items-center justify-center border border-gray-400 rounded-sm text-xs font-bold">
-                        {size.value}
-                      </span>
-                      {size.name}
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Colors */}
-            <h3 className="text-xl font-Poppins font-medium border-b border-b-slate-300 pb-1 mt-2">
-              Colors
-            </h3>
-            <div className="max-h-[300px] !mt-4 overflow-y-auto custom-scrollbar pr-2">
-              <ul className="space-y-2">
-                {COLORS.map((color) => (
-                  <li
-                    key={color.value}
-                    className="flex items-center justify-between"
-                  >
-                    <label className="flex items-center gap-3 text-sm text-gray-700">
-                      <input
-                        type="checkbox"
-                        className="accent-blue-600"
-                        value={color.value}
-                        checked={selectedColor.includes(color.value)}
-                        onChange={(e) => {
-                          setPage(1);
-                          setSelectedColor((prevColors) => {
-                            if (prevColors.includes(color.value)) {
-                              return prevColors.filter(
-                                (c) => c !== color.value
-                              );
-                            } else {
-                              return [...prevColors, color.value];
-                            }
-                          });
-                        }}
+                        value={country.code}
+                        checked={selectedCountries.includes(country.code)}
+                        onChange={() => toggleCountry(country.code)}
                       />
                       <div
                         className="size-4 rounded-sm"
-                        style={{ backgroundColor: color.value }}
+                        style={{ backgroundColor: country.code }}
                       />
-                      {color.name}
+                      {country.name}
                     </label>
                   </li>
                 ))}
@@ -215,9 +170,9 @@ const Products = () => {
             </div>
           </aside>
 
-          {/* Products Grid */}
+          {/* Shop Grid */}
           <div className="flex-1 px-2 lg:px-3">
-            {isProductLoading ? (
+            {isShopsLoading ? (
               <div className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
                 {Array.from({ length: 12 }).map((_, index) => (
                   <div
@@ -231,12 +186,12 @@ const Products = () => {
                   </div>
                 ))}
               </div>
-            ) : products.length === 0 ? (
-              <p>No products found.</p>
+            ) : shops.length === 0 ? (
+              <p>No shops found.</p>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
-                {products.map((product, i) => (
-                  <ProductCard key={i} product={product} />
+                {shops.map((shop, i) => (
+                  <ShopCard key={i} shop={shop} />
                 ))}
               </div>
             )}
@@ -248,6 +203,8 @@ const Products = () => {
               onPageChange={(newPage) => setPage(newPage)}
             />
           </div>
+
+
         </div>
       </div>
     </div>

@@ -46,8 +46,12 @@ export const getFilteredShops = async (
         take: parsedLimit,
         include: {
           seller: true,
+          avatar: true,
           followers: true,
-          products: true,
+          // only 12 products per shop for preview
+          products: {
+            take: 12,
+          },
         },
       }),
       prisma.shops.count({ where: filters }),
@@ -105,6 +109,7 @@ export const getTopShops = async (
         coverBanner: true,
         address: true,
         followers: true,
+        followersCount: true,
         category: true,
       },
     });
