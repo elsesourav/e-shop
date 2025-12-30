@@ -83,8 +83,6 @@ const ProductDetails = ({ product }: { product: ProductType }) => {
 
       setRecommendedProducts(response.data.products);
     } catch (error) {
-      console.log(product);
-
       console.log('Error fetching recommended products:', error);
       setRecommendedProducts([]);
     }

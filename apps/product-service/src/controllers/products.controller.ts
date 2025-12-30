@@ -1304,6 +1304,267 @@ export const getFilteredEvents = async (
   }
 };
 
+// get all events
+export const getAllEvents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      page = '1',
+      limit = '20',
+      category,
+      subCategory,
+      search,
+      minPrice,
+      maxPrice,
+      sortBy = 'createdAt',
+      order = 'desc',
+      ratings,
+      brand,
+      colors,
+      sizes,
+      shopId,
+      tags,
+      cod,
+      inStock,
+    } = req.query;
+
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build where clause
+    const where: any = {
+      status: 'ACTIVE', // Only show active products
+      isDeleted: false, // Exclude deleted products
+      startingDate: { not: null },
+      endingDate: { not: null },
+    };
+
+    // Category filters
+    if (category) {
+      where.category = category as string;
+    }
+
+    if (subCategory) {
+      where.subCategory = subCategory as string;
+    }
+
+    // Shop filter
+    if (shopId) {
+      where.shopId = shopId as string;
+    }
+
+    // Search by title, description, or tags
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: 'insensitive' } },
+        { description: { contains: search as string, mode: 'insensitive' } },
+        { tags: { has: search as string } },
+      ];
+    }
+
+    // Price range
+    if (minPrice || maxPrice) {
+      where.salePrice = {};
+      if (minPrice) {
+        where.salePrice.gte = parseFloat(minPrice as string);
+      }
+      if (maxPrice) {
+        where.salePrice.lte = parseFloat(maxPrice as string);
+      }
+    }
+
+    // Ratings filter
+    if (ratings) {
+      where.ratings = { gte: parseFloat(ratings as string) };
+    }
+
+    // Brand filter
+    if (brand) {
+      where.brand = brand as string;
+    }
+
+    // Colors filter (array contains)
+    if (colors) {
+      const colorArray = (colors as string).split(',');
+      where.colors = { hasSome: colorArray };
+    }
+
+    // Sizes filter (array contains)
+    if (sizes) {
+      const sizeArray = (sizes as string).split(',');
+      where.sizes = { hasSome: sizeArray };
+    }
+
+    // Tags filter
+    if (tags) {
+      const tagArray = (tags as string).split(',');
+      where.tags = { hasSome: tagArray };
+    }
+
+    // Cash on Delivery filter
+    if (cod !== undefined) {
+      where.cod = cod === 'true';
+    }
+
+    // Stock availability filter
+    if (inStock === 'true') {
+      where.stock = { gt: 0 };
+    }
+
+    // Build orderBy clause
+    const orderBy: any = {};
+    const sortField = sortBy as string;
+    const sortOrder = order as string;
+
+    // Valid sort fields
+    const validSortFields = [
+      'createdAt',
+      'salePrice',
+      'ratings',
+      'viewCount',
+      'soldCount',
+      'title',
+    ];
+
+    if (validSortFields.includes(sortField)) {
+      orderBy[sortField] = sortOrder === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.createdAt = 'desc'; // Default sort
+    }
+
+    // Fetch products with pagination and top 10 products
+    const [products, totalCount, topProducts] = await Promise.all([
+      prisma.products.findMany({
+        where,
+        include: {
+          images: {
+            select: {
+              id: true,
+              url: true,
+              fileId: true,
+            },
+          },
+          shop: {
+            select: {
+              id: true,
+              name: true,
+              ratings: true,
+              address: true,
+              category: true,
+              avatar: {
+                select: {
+                  id: true,
+                  url: true,
+                  fileId: true,
+                },
+              },
+            },
+          },
+          productRating: {
+            select: {
+              averageRating: true,
+              totalReviews: true,
+              fiveStars: true,
+              fourStars: true,
+              threeStars: true,
+              twoStars: true,
+              oneStar: true,
+            },
+          },
+          reviews: {
+            select: {
+              id: true,
+              rating: true,
+              review: true,
+              userId: true,
+              createdAt: true,
+            },
+            orderBy: {
+              createdAt: 'desc',
+            },
+            take: 5, // Only include latest 5 reviews
+          },
+        },
+        orderBy,
+        skip,
+        take: limitNum,
+      }),
+
+      prisma.products.count({ where }),
+
+      // Top 10 products by ratings and sold count
+      prisma.products.findMany({
+        where: {
+          status: 'ACTIVE',
+          isDeleted: false,
+          stock: { gt: 0 },
+          startingDate: { not: null },
+          endingDate: { not: null },
+        },
+        include: {
+          images: {
+            select: {
+              id: true,
+              url: true,
+              fileId: true,
+            },
+            take: 1,
+          },
+          shop: {
+            select: {
+              id: true,
+              name: true,
+              ratings: true,
+            },
+          },
+          productRating: {
+            select: {
+              averageRating: true,
+              totalReviews: true,
+              fiveStars: true,
+              fourStars: true,
+              threeStars: true,
+              twoStars: true,
+              oneStar: true,
+            },
+          },
+        },
+        orderBy: [
+          { ratings: 'desc' },
+          { soldCount: 'desc' },
+          { viewCount: 'desc' },
+        ],
+        take: 10,
+      }),
+    ]);
+
+    // Calculate pagination info
+    const totalPages = Math.ceil(totalCount / limitNum);
+    const hasNextPage = pageNum < totalPages;
+    const hasPrevPage = pageNum > 1;
+
+    return res.status(200).json({
+      success: true,
+      products,
+      topProducts,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalProducts: totalCount,
+        limit: limitNum,
+        hasNextPage,
+        hasPrevPage,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 // Get single product by ID or slug
 export const getProductById = async (
   req: Request,

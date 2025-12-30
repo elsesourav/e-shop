@@ -14,6 +14,7 @@ import {
   deleteDraftProduct,
   deleteProduct,
   deleteProductImage,
+  getAllEvents,
   getAllProducts,
   getBrands,
   getDraftProducts,
@@ -48,6 +49,7 @@ router.get('/get-brands', getBrands);
 router.get('/get-all-products', getAllProducts);
 router.get('/get-filtered-products', getFilteredProducts);
 router.get('/get-filtered-offers', getFilteredEvents);
+router.get('/get-all-events', getAllEvents);
 router.get('/get-filtered-shops', getFilteredShops);
 router.get('/get-top-shops', getTopShops);
 router.get('/get-product/:identifier', getProductById); // Get by ID or slug

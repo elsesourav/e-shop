@@ -3,12 +3,14 @@ import { Loader2, Minus, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useDeviceTracking from '@src/hooks/useDeviceTracking';
 import useLocationTracking from '@src/hooks/useLocationTracking';
 import useUser from '@src/hooks/useUser';
 import { useStore } from '@src/store';
 import { formatPrice } from '@src/utils/utils';
+import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '@/utils/axiosInstance';
 
 const CartPage = () => {
   const router = useRouter();
@@ -30,6 +32,24 @@ const CartPage = () => {
   const removeFromCart = useStore((state: any) => state.removeFromCart);
   const [loading, setLoading] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+
+  // Get Address
+  const { data: addresses, isLoading: addressesLoading } = useQuery({
+    queryKey: ['shipping-addresses'],
+    queryFn: async () => {
+      const res = await axiosInstance.get('/api/get-addresses');
+      return res.data.addresses;
+    },
+  });
+
+  useEffect(() => {
+    if (addresses && addresses.length > 0 && !selectedAddressId) {
+      const defaultAddress = addresses.find((addr: any) => addr.isDefault);
+      if (defaultAddress) {
+        setSelectedAddressId(defaultAddress.id);
+      }
+    }
+  }, [addresses, selectedAddressId]);
 
   const increaseQuantity = (productId: string) => {
     useStore.setState((state: any) => ({
@@ -226,14 +246,24 @@ const CartPage = () => {
                 <h4 className="mb-[7px] font-medium text-[15px]">
                   Select Shipping Address
                 </h4>
-                <select
-                  name="address"
-                  className="w-full p-2 border border-gray-200 rounded-l-md focus:outline-none focus:border-blue-500"
-                  value={selectedAddressId}
-                  onChange={(e) => setSelectedAddressId(e.target.value)}
-                >
-                  <option value="address-x">Home - West Bengal - 700XXX</option>
-                </select>
+
+                {addressesLoading ? (
+                  <p>Loading addresses...</p>
+                ) : addresses && addresses.length > 0 ? (
+                  <select
+                    className="form-input"
+                    value={selectedAddressId}
+                    onChange={(e) => setSelectedAddressId(e.target.value)}
+                  >
+                    {addresses.map((address: any) => (
+                      <option key={address.id} value={address.id}>
+                        {address.label} - {address.name}, {address.city}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p>No addresses found. Please add an address.</p>
+                )}
               </div>
 
               <hr className="my-4 text-slate-200" />

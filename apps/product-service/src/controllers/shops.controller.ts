@@ -99,7 +99,7 @@ export const getTopShops = async (
     // Fetch shop details
     const shopIds = topShopsData.map((data) => data.shopId);
 
-    const shops = await prisma.shops.findMany({
+    let shops = await prisma.shops.findMany({
       where: { id: { in: shopIds } },
       select: {
         id: true,
@@ -113,6 +113,26 @@ export const getTopShops = async (
         category: true,
       },
     });
+
+    if (shops.length < 10) {
+      const moreShops = await prisma.shops.findMany({
+        where: { id: { notIn: shopIds } },
+        take: 10 - shops.length,
+        orderBy: { ratings: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          ratings: true,
+          avatar: true,
+          coverBanner: true,
+          address: true,
+          followers: true,
+          followersCount: true,
+          category: true,
+        },
+      });
+      shops = [...shops, ...moreShops];
+    }
 
     // Merge sales with shop data
     const enrichedShops = shops.map((shop) => {

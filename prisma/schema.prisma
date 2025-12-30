@@ -39,9 +39,29 @@ model users {
   shopReviews    shopReviews[]
   productReviews productReviews[]
   orders         orders[]
+  addresses      addresses[]
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   userAnalytics  userAnalytics?
+}
+
+// User Address model
+model addresses {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  name      String
+  phone     String
+  address   String
+  city      String
+  zpi       String
+  country   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 // Shop reviews
