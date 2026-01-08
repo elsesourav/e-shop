@@ -17,7 +17,6 @@ const getCategoryLabel = (categoryValue: string) => {
 }
 
 const ShopCard: FC<ShopsCardProps> = ({ shop }) => {
-  console.log(shop);
 
   return (
     <div className="w-full rounded-md cursor-pointer bg-white border border-gray-200 shadow-sm overflow-hidden hover:shadow-lg translate-y-0 hover:-translate-y-[1px] transition-all transition-200">

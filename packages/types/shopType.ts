@@ -1,6 +1,9 @@
+import { FollowerType } from './followerType';
 import { ImageType } from './imageType';
-import { ProductType } from './productType';
+import { OrderType } from './orderType';
+import { ProductAnalyticsType, ProductType } from './productType';
 import { SellerType } from './sellerType';
+import { UniqueShopVisitorType } from './uniqueShopVisitorType';
 import { UserType } from './userType';
 
 export interface ShopReviewType {
@@ -12,6 +15,19 @@ export interface ShopReviewType {
   createdAt: Date;
   updatedAt: Date;
   user?: UserType;
+}
+
+export interface ShopAnalyticsType {
+  id: string;
+  shopId: string;
+  shop?: ShopType;
+  totalVisits: number;
+  countryStats?: any;
+  cityStats?: any;
+  deviceStats?: any;
+  lastVisitedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ShopType {
@@ -30,8 +46,12 @@ export interface ShopType {
   sellerId: string;
   seller?: SellerType;
   products?: ProductType[];
-  followers?: UserType[];
-  followersCount?: number;
+  orders?: OrderType[];
+  productAnalytics?: ProductAnalyticsType[];
+  shopAnalytics?: ShopAnalyticsType;
+  followersCount: number;
+  followers?: FollowerType[];
+  uniqueVisitors?: UniqueShopVisitorType[];
   createdAt: Date;
   updatedAt: Date;
 }

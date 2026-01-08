@@ -1,13 +1,13 @@
 'use client';
+import DeleteConfirmationModal from '@src/shared/components/models/delete.confirmation.model';
+import RecoverConfirmationModal from '@src/shared/components/models/recover.confirmation.model';
+import axiosInstance from '@src/utils/axiosInstance';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import DeleteConfirmationModal from 'apps/seller-ui/src/shared/components/models/delete.confirmation.model';
-import RecoverConfirmationModal from 'apps/seller-ui/src/shared/components/models/recover.confirmation.model';
-import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import {
   BarChart,
   ChevronLeft,

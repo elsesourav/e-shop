@@ -56,7 +56,7 @@ const page = () => {
   }, [activeTab]);
 
   const logOutHandler = async () => {
-    await axiosInstance.get('/api/logout-user').then(() => {
+    await axiosInstance.post('/api/user-logout').then(() => {
       queryClient.invalidateQueries({ queryKey: ['user'] });
 
       router.push('/login');

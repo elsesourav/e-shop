@@ -1,4 +1,4 @@
-import SidebarWrapper from 'apps/seller-ui/src/shared/components/sidebar/sidebar';
+import SidebarWrapper from '@src/shared/components/sidebar/sidebar';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -9,7 +9,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <SidebarWrapper />
         </div>
       </aside>
-      
+
       {/* Main Content */}
       <main className="relative overflow-auto flex-1 p-4">
         <div className="">{children}</div>

@@ -1,6 +1,6 @@
-import FullStar from 'apps/user-ui/src/assets/svg/full-star';
-import HalfStar from 'apps/user-ui/src/assets/svg/half-star';
-import OutlineStar from 'apps/user-ui/src/assets/svg/outline-star';
+import FullStar from '@src/assets/svg/full-star';
+import HalfStar from '@src/assets/svg/half-star';
+import OutlineStar from '@src/assets/svg/outline-star';
 
 import { FC } from 'react';
 

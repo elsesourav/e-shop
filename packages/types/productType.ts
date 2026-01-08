@@ -1,4 +1,5 @@
 import { ImageType } from './imageType';
+import { OrderItemType } from './orderType';
 import { ShopType } from './shopType';
 import { UserType } from './userType';
 
@@ -64,6 +65,7 @@ export interface ProductType {
   ratings: number;
   images: ImageType[];
   reviews?: ProductReviewType[];
+  orderItems?: OrderItemType[];
   productRating?: ProductRatingType;
   productAnalytics?: ProductAnalyticsType;
   discountCodes: string[];

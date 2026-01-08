@@ -172,7 +172,7 @@ const ShippingAddressSection = () => {
                       <MapPin className="size-4 text-gray-500" />
                       {address.label}{' '}
                       {address.isDefault && (
-                        <span className="text-xs text-white bg-blue-600 px-1.5 py-0.5 rounded-full ml-2">
+                        <span className="text-xs text-white bg-blue-500 px-1.5 py-0.5 rounded-full ml-2">
                           Default
                         </span>
                       )}

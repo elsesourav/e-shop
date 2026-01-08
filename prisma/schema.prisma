@@ -29,37 +29,45 @@ model images {
 
 // User model
 model users {
-  id             String           @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  email          String           @unique
-  password       String?
-  avatar         images[]
-  following      String[]         @db.ObjectId
-  followedShops  shops[]          @relation("ShopFollowers", fields: [following], references: [id])
-  shopReviews    shopReviews[]
-  productReviews productReviews[]
-  orders         orders[]
-  addresses      addresses[]
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  userAnalytics  userAnalytics?
+  id                    String               @id @default(auto()) @map("_id") @db.ObjectId
+  name                  String
+  email                 String               @unique
+  password              String?
+  avatar                images[]
+  shopReviews           shopReviews[]
+  productReviews        productReviews[]
+  orders                orders[]
+  addresses             addresses[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  userAnalytics         userAnalytics?
+  following             followers[]
+  visitedShops          uniqueShopVisitors[]
+  createdNotifications  notifications[]      @relation("NotificationCreator")
+  receivedNotifications notifications[]      @relation("NotificationReceiver")
+}
+
+enum AddressType {
+  HOME
+  WORK
+  OTHERS
 }
 
 // User Address model
 model addresses {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label     String
-  name      String
-  phone     String
-  address   String
-  city      String
-  zpi       String
-  country   String
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String      @db.ObjectId
+  user        users       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addressType AddressType @default(HOME)
+  name        String
+  phone       String
+  address     String
+  city        String
+  zpi         String
+  country     String
+  isDefault   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([userId])
 }
@@ -119,8 +127,8 @@ model productRatings {
 
 // Shop model
 model shops {
-  id               String             @id @default(auto()) @map("_id") @db.ObjectId
-  name             String             @unique
+  id               String               @id @default(auto()) @map("_id") @db.ObjectId
+  name             String               @unique
   description      String
   category         String
   avatar           images[]
@@ -129,18 +137,19 @@ model shops {
   openingHours     String?
   website          String?
   socialLinks      Json[]
-  ratings          Float              @default(0.0)
+  ratings          Float                @default(0.0)
   reviews          shopReviews[]
-  sellerId         String             @unique @db.ObjectId
-  seller           sellers            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  sellerId         String               @unique @db.ObjectId
+  seller           sellers              @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   products         products[]
   orders           orders[]
   productAnalytics productAnalytics[]
-  followerIds      String[]           @db.ObjectId
-  followers        users[]            @relation("ShopFollowers", fields: [followerIds], references: [id])
-  followersCount   Int                @default(0)
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  shopAnalytics    shopAnalytics?
+  followersCount   Int                  @default(0)
+  followers        followers[]
+  uniqueVisitors   uniqueShopVisitors[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
   @@index([category])
   @@index([ratings])
@@ -325,19 +334,23 @@ enum PaymentStatus {
 
 // Order model
 model orders {
-  id              String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String        @db.ObjectId
-  user            users         @relation(fields: [userId], references: [id])
-  shopId          String        @db.ObjectId
-  shop            shops         @relation(fields: [shopId], references: [id])
-  totalAmount     Float
-  status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(PENDING)
-  paymentMethod   String
-  shippingAddress Json
-  items           orderItems[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id                String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String        @db.ObjectId
+  user              users         @relation(fields: [userId], references: [id])
+  shopId            String        @db.ObjectId
+  shop              shops         @relation(fields: [shopId], references: [id])
+  totalAmount       Float
+  discountCode      String?
+  discountAmount    Float?        @default(0)
+  status            OrderStatus   @default(PENDING)
+  paymentStatus     PaymentStatus @default(PENDING)
+  deliveryStatus    String?
+  paymentMethod     String
+  shippingAddress   Json
+  shippingAddressId String?       @db.ObjectId
+  items             orderItems[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@index([userId])
   @@index([shopId])
@@ -347,13 +360,85 @@ model orders {
 
 // Order Item model
 model orderItems {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String   @db.ObjectId
+  order           orders   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String   @db.ObjectId
+  product         products @relation(fields: [productId], references: [id])
+  quantity        Int
+  price           Float
+  selectedOptions Json?
+}
+
+// Followers model
+model followers {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId   String   @db.ObjectId
-  order     orders   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String   @db.ObjectId
-  product   products @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
-  color     String?
-  size      String?
+  userId    String   @db.ObjectId
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopId    String   @db.ObjectId
+  shop      shops    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, shopId])
+  @@index([userId])
+  @@index([shopId])
+}
+
+// Shop Analytics model
+model shopAnalytics {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  shopId        String    @unique @db.ObjectId
+  shop          shops     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  totalVisits   Int       @default(0)
+  countryStats  Json?
+  cityStats     Json?
+  deviceStats   Json?
+  lastVisitedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([totalVisits])
+  @@index([lastVisitedAt])
+}
+
+// Unique Shop Visitors model
+model uniqueShopVisitors {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopId    String   @db.ObjectId
+  shop      shops    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitedAt DateTime @default(now())
+
+  @@unique([shopId, userId])
+  @@index([shopId])
+  @@index([userId])
+  @@index([visitedAt])
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  PROMOTION
+  SYSTEM
+  ALERT
+}
+
+// Notifications model
+model notifications {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  creatorId    String           @db.ObjectId
+  creator      users            @relation("NotificationCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  receiverId   String           @db.ObjectId
+  receiver     users            @relation("NotificationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  title        String
+  message      String?
+  redirectLink String?
+  isRead       Boolean          @default(false)
+  type         NotificationType @default(SYSTEM)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([receiverId])
+  @@index([isRead])
+  @@index([createdAt])
 }

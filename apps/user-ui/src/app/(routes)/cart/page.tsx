@@ -11,6 +11,7 @@ import { useStore } from '@src/store';
 import { formatPrice } from '@src/utils/utils';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '@/utils/axiosInstance';
+import toast from 'react-hot-toast';
 
 const CartPage = () => {
   const router = useRouter();
@@ -32,6 +33,27 @@ const CartPage = () => {
   const removeFromCart = useStore((state: any) => state.removeFromCart);
   const [loading, setLoading] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+
+  const createPaymentSession = async () => {
+    setLoading(true);
+    try {
+      const res = await axiosInstance.post(
+        '/order/api/create-payment-session',
+        {
+          cart,
+          selectedAddressId,
+          couponCode: {},
+        }
+      );
+
+      const sessionId = res.data.sessionId;
+      router.push(`/checkout?sessionId=${sessionId}`);
+    } catch (error) {
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get Address
   const { data: addresses, isLoading: addressesLoading } = useQuery({
@@ -286,6 +308,7 @@ const CartPage = () => {
               </div>
 
               <button
+                onClick={createPaymentSession}
                 disabled={loading}
                 className="flex w-full items-center justify-center gap-2 cursor-pointer mt-4 py-3 bg-[#010f1c] text-white hover:bg-[#0989ff] transition-all rounded-lg"
               >

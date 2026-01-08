@@ -1,18 +1,18 @@
 'use client';
 
-import useSeller from 'apps/seller-ui/src/hooks/useSeller';
-import useSidebar from 'apps/seller-ui/src/hooks/useSidebar';
+import useSeller from '@src/hooks/useSeller';
+import useSidebar from '@src/hooks/useSidebar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Box from '../box';
 import { Sidebar } from './sidebar.style';
-import Logo from 'apps/seller-ui/src/app/assets/svg/logo';
+import Logo from '@src/app/assets/svg/logo';
 import SidebarItem from './sidebar.item';
 import SidebarMenu from './sidebar.menu';
-import Home from 'apps/seller-ui/src/app/assets/icons/home';
+import Home from '@src/app/assets/icons/home';
 import { BellPlus, BellRing, CalendarPlus, ListOrdered, LogOut, Mail, PackageSearch, Settings, SquarePlus, TicketPercent } from 'lucide-react';
-import Payment from 'apps/seller-ui/src/app/assets/icons/payment';
+import Payment from '@src/app/assets/icons/payment';
 
 const SidebarWrapper = () => {
   const { activeSidebar, setActiveSidebar } = useSidebar();

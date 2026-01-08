@@ -1,7 +1,7 @@
 'use client';
 
+import axiosInstance from '@src/utils/axiosInstance';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import { Clock, Edit, Send, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
