@@ -88,6 +88,7 @@
     "@types/react-dom": "19.0.0",
     "@types/swagger-ui-express": "^4.1.8",
     "autoprefixer": "10.4.13",
+    "baseline-browser-mapping": "^2.9.14",
     "esbuild": "^0.25.10",
     "i": "^0.3.7",
     "jest": "^30.0.2",

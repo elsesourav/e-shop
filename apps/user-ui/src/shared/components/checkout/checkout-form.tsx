@@ -31,6 +31,7 @@ const CheckoutForm = ({
   );
 
   const handleSubmit = async (e: FormEvent) => {
+    debugger;
     e.preventDefault();
     setLoading(true);
     setErrorMessage(null);

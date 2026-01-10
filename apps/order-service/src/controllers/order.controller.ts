@@ -33,7 +33,7 @@ export const createPaymentIntent = async (
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: customerAmount,
-      currency: 'usd',
+      currency: 'inr',
       payment_method_types: ['card'],
       application_fee_amount: platformFee,
       transfer_data: {
@@ -160,9 +160,9 @@ export const createPaymentSession = async (
       userId: userId,
       cart,
       sellers: sellerData,
-      selectedAddressId: selectedAddressId || null,
+      selectedAddressId: selectedAddressId,
       totalAmount,
-      couponCode: couponCode || null,
+      couponCode: couponCode,
     };
 
     const sessionKey = `payment_session:${sessionId}`;
@@ -220,12 +220,12 @@ export const createOrder = async (
       return next(new ValidationError('Stripe signature is required'));
     }
 
-    const rowBody = (req as any).rawBody;
+    const rawBody = (req as any).rawBody;
     let event: Stripe.Event;
 
     try {
       event = stripe.webhooks.constructEvent(
-        rowBody,
+        rawBody,
         stripeSignature,
         process.env.STRIPE_WEBHOOK_SECRET! as string
       );
@@ -234,13 +234,18 @@ export const createOrder = async (
       return next(new ValidationError(`Webhook Error: ${error.message}`));
     }
 
-    console.log("Payment status: ", event);
-    
-
     if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       const sessionId = paymentIntent.metadata.sessionId;
       const userId = paymentIntent.metadata.userId;
+
+      // Check if metadata is present (test webhooks from CLI won't have it)
+      if (!sessionId || !userId) {
+        return res.status(200).json({
+          received: true,
+          message: 'Test webhook received but skipped (no metadata)',
+        });
+      }
 
       const sessionKey = `payment_session:${sessionId}`;
       const sessionData = await redis.get(sessionKey);
@@ -286,9 +291,6 @@ export const createOrder = async (
       });
 
       const shopMap = new Map(shops.map((shop) => [shop.id, shop]));
-
-      console.log("shop map: ", shopMap);
-      
 
       for (const shopId in shopGrouped) {
         const orderItems = shopGrouped[shopId];
@@ -347,9 +349,6 @@ export const createOrder = async (
 
         // Collect actions for user analytics
         const newActions: any[] = [];
-
-        console.log("order items", orderItems);
-        
 
         // Update Product Analytics
         for (const item of orderItems) {
@@ -414,27 +413,25 @@ export const createOrder = async (
           });
         }
 
-        console.log(order);
-        
-
         // send email to user
-        await sendEmail(
-          email,
-          'Your Order has been Placed Successfully!',
-          'order-confirmation',
-          {
-            name,
-            orderId: order.id,
-            orderDate: new Date().toLocaleDateString(),
-            totalAmount: orderTotal.toFixed(2),
-            items: orderItems,
-            shippingAddress,
-            trackingUrl: `https://eshop.com/orders/${order.id}`,
-          }
-        ); 
-
-        console.log("mail send successfully");
-        
+        try {
+          await sendEmail(
+            email,
+            'Your Order has been Placed Successfully!',
+            'order-confirmation',
+            {
+              name,
+              orderId: order.id,
+              orderDate: new Date().toLocaleDateString(),
+              totalAmount: orderTotal.toFixed(2),
+              items: orderItems,
+              shippingAddress,
+              trackingUrl: `https://eshop.com/orders/${order.id}`,
+            }
+          );
+        } catch (emailError) {
+          console.error('Failed to send confirmation email:', emailError);
+        }
 
         // create notification for seller
         const firstProduct = orderItems[0];
@@ -452,9 +449,8 @@ export const createOrder = async (
         });
 
         // Create notification for admin
-        // Note: 'admin' might not be a valid ObjectId for receiverId relation.
-        // Ensure you have a valid user ID for admin or remove this block.
-
+        // Note: 'admin' is not a valid ObjectId. This needs to be a real user ID or handled differently.
+        /* 
         await prisma.notifications.create({
           data: {
             title: `New Order Placed`,
@@ -462,8 +458,10 @@ export const createOrder = async (
             creatorId: userId,
             receiverId: 'admin',
             redirectLink: `https://eshop.com/orders/${order.id}`,
+            type: 'ORDER_UPDATE',
           },
         });
+        */
       }
 
       // delete session from redis
@@ -472,7 +470,247 @@ export const createOrder = async (
 
     return res.status(200).json({ received: true });
   } catch (error) {
-    console.log(error);
+    console.error('Error in createOrder:', error);
+    return next(error);
+  }
+};
+
+// Verify and process payment (fallback for when webhook doesn't fire)
+export const verifyAndProcessPayment = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { payment_intent, sessionId } = req.query;
+
+    if (!payment_intent || !sessionId) {
+      return next(
+        new ValidationError('Payment intent and session ID are required')
+      );
+    }
+
+    // Retrieve the payment intent from Stripe
+    const paymentIntent = await stripe.paymentIntents.retrieve(
+      payment_intent as string
+    );
+
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment not completed',
+      });
+    }
+
+    const userId = paymentIntent.metadata.userId;
+    const sessionKey = `payment_session:${sessionId}`;
+    const sessionData = await redis.get(sessionKey);
+
+    if (!sessionData) {
+      return res.status(200).json({
+        success: true,
+        message: 'Order already processed',
+        alreadyProcessed: true,
+      });
+    }
+
+    const { cart, selectedAddressId, couponCode } =
+      typeof sessionData === 'string' ? JSON.parse(sessionData) : sessionData;
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) {
+      return next(new NotFoundError('User not found'));
+    }
+
+    let shippingAddress = {};
+    if (selectedAddressId) {
+      const address = await prisma.addresses.findUnique({
+        where: { id: selectedAddressId },
+      });
+      if (address) {
+        shippingAddress = address;
+      }
+    }
+
+    const name = user?.name || 'Unnamed User';
+    const email = user?.email || 'Unnamed Email';
+
+    const shopGrouped = cart.reduce((acc: any, item: Product) => {
+      if (!acc[item?.shopId!]) {
+        acc[item?.shopId!] = [];
+      }
+      acc[item?.shopId!].push(item);
+      return acc;
+    }, {});
+
+    const createdShopIds = Object.keys(shopGrouped);
+    const shops = await prisma.shops.findMany({
+      where: { id: { in: createdShopIds } },
+      select: { id: true, sellerId: true, name: true },
+    });
+
+    const shopMap = new Map(shops.map((shop) => [shop.id, shop]));
+    const createdOrders = [];
+
+    for (const shopId in shopGrouped) {
+      const orderItems = shopGrouped[shopId];
+      const shop = shopMap.get(shopId);
+
+      if (!shop) continue;
+
+      let orderTotal = orderItems.reduce((sum: number, item: Product) => {
+        return sum + item.salePrice * (item.quantity || 1);
+      }, 0);
+
+      if (
+        couponCode &&
+        couponCode.discountedProductId &&
+        orderItems.find(
+          (it: Product) => it.id === couponCode.discountedProductId
+        )
+      ) {
+        const discountItem = orderItems.find(
+          (it: Product) => it.id === couponCode.discountedProductId
+        );
+
+        if (discountItem) {
+          const discount =
+            couponCode.discountPercentage > 0
+              ? (discountItem.salePrice * couponCode.discountPercentage) / 100
+              : couponCode.discountAmount;
+
+          orderTotal -= discount;
+        }
+      }
+
+      const order = await prisma.orders.create({
+        data: {
+          userId,
+          shopId,
+          totalAmount: orderTotal,
+          paymentStatus: 'PAID',
+          shippingAddressId: selectedAddressId || null,
+          discountCode: couponCode?.code || null,
+          discountAmount: couponCode?.discountAmount || null,
+          paymentMethod: 'STRIPE',
+          shippingAddress,
+          items: {
+            create: orderItems.map((item: Product) => ({
+              productId: item.id,
+              quantity: item.quantity || 1,
+              price: item.salePrice,
+              selectedOptions: item.selectedOptions || {},
+            })),
+          },
+        },
+      });
+
+      createdOrders.push(order.id);
+
+      const newActions: any[] = [];
+
+      for (const item of orderItems) {
+        const { id: productId, shopId } = item;
+
+        await prisma.products.update({
+          where: { id: productId },
+          data: {
+            stock: { decrement: item.quantity || 1 },
+            soldCount: { increment: item.quantity || 1 },
+          },
+        });
+
+        await prisma.productAnalytics.upsert({
+          where: { productId },
+          create: {
+            productId,
+            shopId,
+            purchases: item.quantity || 1,
+            lastVisitedAt: new Date(),
+          },
+          update: {
+            purchases: { increment: item.quantity || 1 },
+            lastVisitedAt: new Date(),
+          },
+        });
+
+        newActions.push({
+          productId,
+          shopId,
+          action: 'PURCHASE',
+          timestamp: new Date(),
+        });
+      }
+
+      const existingAnalytics = await prisma.userAnalytics.findUnique({
+        where: { userId },
+      });
+
+      const currentActions = Array.isArray(existingAnalytics?.actions)
+        ? (existingAnalytics?.actions as Prisma.JsonArray)
+        : [];
+
+      if (existingAnalytics) {
+        await prisma.userAnalytics.update({
+          where: { userId },
+          data: {
+            lastVisited: new Date(),
+            actions: [...currentActions, ...newActions] as any,
+          },
+        });
+      } else {
+        await prisma.userAnalytics.create({
+          data: {
+            userId,
+            lastVisited: new Date(),
+            actions: newActions as any,
+          },
+        });
+      }
+
+      try {
+        await sendEmail(
+          email,
+          'Your Order has been Placed Successfully!',
+          'order-confirmation',
+          {
+            name,
+            orderId: order.id,
+            orderDate: new Date().toLocaleDateString(),
+            totalAmount: orderTotal.toFixed(2),
+            items: orderItems,
+            shippingAddress,
+            trackingUrl: `https://eshop.com/orders/${order.id}`,
+          }
+        );
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+      }
+
+      const firstProduct = orderItems[0];
+      const productTitle = firstProduct?.title || 'new item';
+
+      await prisma.notifications.create({
+        data: {
+          title: `New Order for ${productTitle}`,
+          message: `You have a new order (ID: ${order.id}) for your shop "${shop.name}".`,
+          creatorId: userId,
+          receiverId: shop.sellerId,
+          redirectLink: `https://eshop.com/orders/${order.id}`,
+          type: 'ORDER_UPDATE',
+        },
+      });
+    }
+
+    await redis.del(sessionKey);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Order created successfully',
+      orders: createdOrders,
+    });
+  } catch (error) {
+    console.error('Error in verifyAndProcessPayment:', error);
     return next(error);
   }
 };

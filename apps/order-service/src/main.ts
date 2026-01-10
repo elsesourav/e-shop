@@ -7,21 +7,25 @@ import { createOrder } from './controllers/order.controller';
 import router from './routes/order.route';
 
 const app = express();
+
+// Stripe webhook endpoint - must be before express.json() and with raw body parser
+app.post(
+  '/api/create-order',
+  bodyParser.raw({ type: 'application/json' }),
+  (req, _, next) => {
+    (req as any).rawBody = req.body;
+    next();
+  },
+  createOrder
+);
+
+// CORS configuration for regular API endpoints (not webhook)
 app.use(
   cors({
     origin: ['http://localhost:3000'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   })
-);
-app.post(
-  '/api/create-order',
-  bodyParser.raw({ type: 'application/json' }),
-  (req, res, next) => {
-    (req as any).rawBody = req.body;
-    next();
-  },
-  createOrder
 );
 app.use(express.json());
 app.use(cookieParser());

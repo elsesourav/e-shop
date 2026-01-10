@@ -21,15 +21,13 @@ const renderEmailTemplate = async (
   data: Record<string, any>
 ): Promise<string> => {
   const templatePath = path.join(
-    path.join(
-      process.cwd(),
-      'apps',
-      'auth-service',
-      'src',
-      'utils',
-      'email-templates',
-      `${templateName}.ejs`
-    )
+    process.cwd(),
+    'apps',
+    'order-service',
+    'src',
+    'utils',
+    'mail-templates',
+    `${templateName}.ejs`
   );
   return ejs.renderFile(templatePath, data);
 };
@@ -42,9 +40,6 @@ export const sendEmail = async (
   data: Record<string, any>
 ) => {
   const html = await renderEmailTemplate(templateName, data);
-
-  console.log(html);
-  
 
   const mailOptions = {
     from: process.env.SMTP_USER,
