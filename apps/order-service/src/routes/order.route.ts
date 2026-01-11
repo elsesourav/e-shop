@@ -3,6 +3,7 @@ import { Router } from 'express';
 import {
   createPaymentIntent,
   createPaymentSession,
+  getSellerOrders,
   verifyAndProcessPayment,
   verifyPaymentSession,
 } from '../controllers/order.controller';
@@ -17,5 +18,6 @@ router.get(
   isAuthenticated,
   verifyAndProcessPayment
 );
+router.get('/get-seller-orders', isAuthenticated, getSellerOrders);
 
 export default router;

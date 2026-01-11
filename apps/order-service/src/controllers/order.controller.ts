@@ -714,3 +714,34 @@ export const verifyAndProcessPayment = async (
     return next(error);
   }
 };
+
+// get seller orders
+export const getSellerOrders = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const shop = await prisma.shops.findUnique({
+      where: { sellerId: req?.seller?.id },
+    });
+
+    // fetch orders for the shop
+    const orders = await prisma.orders.findMany({
+      where: { shopId: shop?.id },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        }
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return res.status(201).json({ orders });
+  } catch (error) {
+    return next(error);
+  }
+};
+
