@@ -1,4 +1,9 @@
-import { AuthError, ValidationError } from '@packages/error-handler';
+import {
+  AuthError,
+  NotFoundError,
+  ValidationError,
+} from '@packages/error-handler';
+import imagekit from '@packages/libs/imagekit';
 import prisma from '@packages/libs/prisma';
 import bcrypt from 'bcryptjs';
 import { NextFunction, Request, Response } from 'express';
@@ -593,10 +598,9 @@ export const addUserAddress = async (
 ) => {
   try {
     const userId = req.user?.id;
-    const { label, name, phone, address, city, zpi, country, isDefault } =
-      req.body;
+    const { name, phone, address, city, zpi, country, isDefault } = req.body;
 
-    if (!label || !name || !phone || !address || !city || !zpi || !country) {
+    if (!name || !phone || !address || !city || !zpi || !country) {
       return next(new ValidationError('All fields are required!'));
     }
 
@@ -610,7 +614,6 @@ export const addUserAddress = async (
     const newAddress = await prisma.addresses.create({
       data: {
         userId,
-        label,
         name,
         phone,
         address,
@@ -640,8 +643,7 @@ export const updateUserAddress = async (
   try {
     const userId = req.user?.id;
     const { addressId } = req.params;
-    const { label, name, phone, address, city, zpi, country, isDefault } =
-      req.body;
+    const { name, phone, address, city, zpi, country, isDefault } = req.body;
 
     if (!addressId) {
       return next(new ValidationError('Address ID is required!'));
@@ -665,7 +667,6 @@ export const updateUserAddress = async (
     const updatedAddress = await prisma.addresses.update({
       where: { id: addressId },
       data: {
-        label,
         name,
         phone,
         address,
@@ -738,6 +739,265 @@ export const getUserAddresses = async (
     res.status(200).json({
       success: true,
       addresses,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Update Shop Profile
+export const updateShopProfile = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = req.seller?.id;
+
+    if (!sellerId) {
+      return next(new AuthError('Seller authentication required'));
+    }
+
+    const {
+      name,
+      description,
+      address,
+      openingHours,
+      website,
+      category,
+      socialLinks,
+      coverBanner,
+    } = req.body;
+
+    // Get seller's shop
+    const seller = await prisma.sellers.findUnique({
+      where: { id: sellerId },
+      include: { shop: true },
+    });
+
+    if (!seller?.shop) {
+      return next(new NotFoundError('Shop not found'));
+    }
+
+    // Build update data
+    const updateData: any = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (address !== undefined) updateData.address = address;
+    if (openingHours !== undefined) updateData.openingHours = openingHours;
+    if (website !== undefined) updateData.website = website;
+    if (category !== undefined) updateData.category = category;
+    if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
+    if (coverBanner !== undefined) updateData.coverBanner = coverBanner;
+
+    const updatedShop = await prisma.shops.update({
+      where: { id: seller.shop.id },
+      data: updateData,
+      include: {
+        avatar: true,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Shop updated successfully!',
+      shop: updatedShop,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Upload Shop Avatar
+export const uploadShopAvatar = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = req.seller?.id;
+    const { image } = req.body;
+
+    if (!sellerId) {
+      return next(new AuthError('Seller authentication required'));
+    }
+
+    if (!image) {
+      return next(new ValidationError('Image is required'));
+    }
+
+    // Get seller's shop
+    const seller = await prisma.sellers.findUnique({
+      where: { id: sellerId },
+      include: { shop: { include: { avatar: true } } },
+    });
+
+    if (!seller?.shop) {
+      return next(new NotFoundError('Shop not found'));
+    }
+
+    // Upload to ImageKit
+    const response = await imagekit.upload({
+      file: image,
+      fileName: `es-shop-avatar-${Date.now()}.jpg`,
+      folder: '/shops/avatars',
+    });
+
+    // Delete old avatar if exists
+    if (seller.shop.avatar && seller.shop.avatar.length > 0) {
+      for (const oldAvatar of seller.shop.avatar) {
+        try {
+          await imagekit.deleteFile(oldAvatar.fileId);
+          await prisma.images.delete({ where: { id: oldAvatar.id } });
+        } catch (err) {
+          console.log('Error deleting old avatar:', err);
+        }
+      }
+    }
+
+    // Create new avatar image
+    const newAvatar = await prisma.images.create({
+      data: {
+        fileId: response.fileId,
+        url: response.url,
+        shopId: seller.shop.id,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Avatar uploaded successfully!',
+      avatar: newAvatar,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Upload Shop Cover Banner
+export const uploadShopCover = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = req.seller?.id;
+    const { image } = req.body;
+
+    if (!sellerId) {
+      return next(new AuthError('Seller authentication required'));
+    }
+
+    if (!image) {
+      return next(new ValidationError('Image is required'));
+    }
+
+    // Get seller's shop
+    const seller = await prisma.sellers.findUnique({
+      where: { id: sellerId },
+      include: { shop: true },
+    });
+
+    if (!seller?.shop) {
+      return next(new NotFoundError('Shop not found'));
+    }
+
+    // Delete old cover if exists
+    if (seller.shop.coverBanner) {
+      try {
+        // Extract fileId from URL if stored as URL
+        const oldUrl = seller.shop.coverBanner;
+        // Try to delete from ImageKit if it's an ImageKit URL
+        if (oldUrl.includes('imagekit')) {
+          // We'll skip deletion for URLs, only update
+        }
+      } catch (err) {
+        console.log('Error with old cover:', err);
+      }
+    }
+
+    // Upload to ImageKit
+    const response = await imagekit.upload({
+      file: image,
+      fileName: `es-shop-cover-${Date.now()}.jpg`,
+      folder: '/shops/covers',
+    });
+
+    // Update shop with new cover banner URL
+    await prisma.shops.update({
+      where: { id: seller.shop.id },
+      data: { coverBanner: response.url },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Cover banner uploaded successfully!',
+      coverBanner: response.url,
+      fileId: response.fileId,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get Shop Profile (Public)
+export const getShopProfile = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = req.seller?.id;
+
+    if (!sellerId) {
+      return next(new AuthError('Seller authentication required'));
+    }
+
+    const seller = await prisma.sellers.findUnique({
+      where: { id: sellerId },
+      include: {
+        shop: {
+          include: {
+            avatar: true,
+            reviews: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    avatar: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+            },
+            _count: {
+              select: {
+                products: true,
+                followers: true,
+                reviews: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!seller?.shop) {
+      return next(new NotFoundError('Shop not found'));
+    }
+
+    res.status(200).json({
+      success: true,
+      shop: seller.shop,
+      seller: {
+        id: seller.id,
+        name: seller.name,
+        email: seller.email,
+        country: seller.country,
+      },
     });
   } catch (error) {
     return next(error);

@@ -8,6 +8,7 @@ import {
   deleteUserAddress,
   getLoggedInUser,
   getSeller,
+  getShopProfile,
   getUserAddresses,
   logoutSeller,
   logoutUser,
@@ -15,7 +16,10 @@ import {
   sellerLogin,
   sellerRegistration,
   sellerVerify,
+  updateShopProfile,
   updateUserAddress,
+  uploadShopAvatar,
+  uploadShopCover,
   userForgotPassword,
   userLogin,
   userRegistration,
@@ -48,6 +52,17 @@ router.post('/create-stripe-account', createStripeConnectAccount);
 router.post('/seller-login', sellerLogin);
 router.get('/logged-in-seller', isAuthenticated, isSeller, getSeller);
 router.post('/seller-logout', isAuthenticated, isSeller, logoutSeller);
+
+// Shop routes
+router.get('/get-shop-profile', isAuthenticated, isSeller, getShopProfile);
+router.put(
+  '/update-shop-profile',
+  isAuthenticated,
+  isSeller,
+  updateShopProfile
+);
+router.post('/upload-shop-avatar', isAuthenticated, isSeller, uploadShopAvatar);
+router.post('/upload-shop-cover', isAuthenticated, isSeller, uploadShopCover);
 
 // All routes
 router.post('/refresh-token', refreshToken);

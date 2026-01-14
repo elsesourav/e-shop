@@ -12,7 +12,6 @@ const validActions = [
   'REMOVE_FROM_WISHLIST',
 ];
 
-
 const eventQueue: any[] = [];
 
 const processQueue = async () => {

@@ -10,6 +10,7 @@ import {
   validateDiscountCode,
 } from '../controllers/discount-codes.controller';
 import {
+  createEvent,
   createProduct,
   deleteDraftProduct,
   deleteProduct,
@@ -21,14 +22,18 @@ import {
   getFilteredEvents,
   getFilteredProducts,
   getProductById,
+  getProductsForEvent,
   getRelatedProducts,
+  getShopEvents,
   getShopProducts,
   getShopProductStats,
   incrementProductView,
   publishDraftProduct,
   recoverProduct,
+  removeEvent,
   saveProductDraft,
   searchProducts,
+  updateEvent,
   uploadProductImage,
 } from '../controllers/products.controller';
 import {
@@ -98,5 +103,12 @@ router.get('/get-shop-reviews/:shopId', getShopReviews);
 
 // product analytics
 router.post('/increment-product-view/:productId', incrementProductView);
+
+// product events
+router.post('/create-event', isAuthenticated, createEvent);
+router.put('/update-event/:id', isAuthenticated, updateEvent);
+router.delete('/remove-event/:id', isAuthenticated, removeEvent);
+router.get('/get-shop-events', isAuthenticated, getShopEvents);
+router.get('/get-products-for-event', isAuthenticated, getProductsForEvent);
 
 export default router;

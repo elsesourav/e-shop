@@ -314,16 +314,6 @@ model productAnalytics {
   @@index([lastVisitedAt])
 }
 
-// Order status enum
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  REFUNDED
-}
-
 // Payment status enum
 enum PaymentStatus {
   PENDING
@@ -332,29 +322,35 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum DeliveryStatus {
+  ORDERED
+  PACKED
+  SHIPPED
+  OUT_OF_DELIVERY
+  DELIVERED
+}
+
 // Order model
 model orders {
-  id                String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String        @db.ObjectId
-  user              users         @relation(fields: [userId], references: [id])
-  shopId            String        @db.ObjectId
-  shop              shops         @relation(fields: [shopId], references: [id])
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String         @db.ObjectId
+  user              users          @relation(fields: [userId], references: [id])
+  shopId            String         @db.ObjectId
+  shop              shops          @relation(fields: [shopId], references: [id])
   totalAmount       Float
   discountCode      String?
-  discountAmount    Float?        @default(0)
-  status            OrderStatus   @default(PENDING)
-  paymentStatus     PaymentStatus @default(PENDING)
-  deliveryStatus    String?
+  discountAmount    Float?         @default(0)
+  paymentStatus     PaymentStatus  @default(PENDING)
+  deliveryStatus    DeliveryStatus @default(ORDERED)
   paymentMethod     String
   shippingAddress   Json
-  shippingAddressId String?       @db.ObjectId
+  shippingAddressId String?        @db.ObjectId
   items             orderItems[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([userId])
   @@index([shopId])
-  @@index([status])
   @@index([createdAt])
 }
 

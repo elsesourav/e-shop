@@ -2,14 +2,15 @@ import { ProductType } from './productType';
 import { ShopType } from './shopType';
 import { UserType } from './userType';
 
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SHIPPED = 'SHIPPED',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED',
+
+export enum DeliveryStatus {
+  ORDERED,
+  PACKED,
+  SHIPPED,
+  OUT_OF_DELIVERY,
+  DELIVERED,
 }
+
 
 export enum PaymentStatus {
   PENDING = 'PENDING',
@@ -38,7 +39,6 @@ export interface OrderType {
   totalAmount: number;
   discountCode?: string;
   discountAmount?: number;
-  status: OrderStatus;
   paymentStatus: PaymentStatus;
   deliveryStatus?: string;
   paymentMethod: string;

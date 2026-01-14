@@ -11,7 +11,18 @@ import Logo from '@src/app/assets/svg/logo';
 import SidebarItem from './sidebar.item';
 import SidebarMenu from './sidebar.menu';
 import Home from '@src/app/assets/icons/home';
-import { BellPlus, BellRing, CalendarPlus, ListOrdered, LogOut, Mail, PackageSearch, Settings, SquarePlus, TicketPercent } from 'lucide-react';
+import {
+  BellPlus,
+  BellRing,
+  CalendarPlus,
+  ListOrdered,
+  LogOut,
+  Mail,
+  PackageSearch,
+  Settings,
+  SquarePlus,
+  TicketPercent,
+} from 'lucide-react';
 import Payment from '@src/app/assets/icons/payment';
 
 const SidebarWrapper = () => {
@@ -41,7 +52,10 @@ const SidebarWrapper = () => {
     >
       <Sidebar.Header>
         <Box>
-          <Link href={'/'} className="flex justify-center items-center text-center gap-2">
+          <Link
+            href={'/'}
+            className="flex justify-center items-center text-center gap-2"
+          >
             <Logo width={30} height={30} />
             <Box>
               <h3 className="text-xl font-medium text-[#ecedee]">
@@ -78,16 +92,16 @@ const SidebarWrapper = () => {
                 isActive={activeSidebar === '/dashboard/orders'}
               />
               <SidebarItem
-                href="/dashboard/payment"
-                title="Payment"
+                href="/dashboard/payments"
+                title="Payments"
                 icon={
                   <Payment
                     height={26}
                     width={26}
-                    fill={getColorIcon('/dashboard/payment')}
+                    fill={getColorIcon('/dashboard/payments')}
                   />
                 }
-                isActive={activeSidebar === '/dashboard/payment'}
+                isActive={activeSidebar === '/dashboard/payments'}
               />
             </SidebarMenu>
 
@@ -190,10 +204,7 @@ const SidebarWrapper = () => {
                 href="/dashboard/logout"
                 title="Logout"
                 icon={
-                  <LogOut
-                    size={22}
-                    color={getColorIcon('/dashboard/logout')}
-                  />
+                  <LogOut size={22} color={getColorIcon('/dashboard/logout')} />
                 }
                 isActive={activeSidebar === '/dashboard/logout'}
               />

@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { NextFunction, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { sendEmail } from '../utils/send-mail';
+import { DeliveryStatus } from '@/packages/types';
 
 type Product = {
   id: string;
@@ -732,7 +733,7 @@ export const getSellerOrders = async (
       include: {
         user: {
           select: { id: true, name: true, email: true },
-        }
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -745,3 +746,114 @@ export const getSellerOrders = async (
   }
 };
 
+// get order details
+export const getOrderDetails = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const orderId = req.params.id;
+
+    const order = await prisma.orders.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!order) {
+      return next(new NotFoundError('Order not found with the given ID!'));
+    }
+
+    const shippingAddress = order.shippingAddressId
+      ? await prisma.addresses.findUnique({
+          where: { id: order.shippingAddressId },
+        })
+      : null;
+
+    const coupon = order.discountCode
+      ? await prisma.discountCodes.findUnique({
+          where: { code: order.discountCode },
+        })
+      : null;
+
+    // fetch all products details in the order
+    const productIds = order.items.map((item) => item.productId);
+    const products = await prisma.products.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, title: true, images: true },
+    });
+
+    const productMap = new Map(
+      products.map((product) => [product.id, product])
+    );
+
+    const items = order.items.map((item) => ({
+      ...item,
+      selectedOptions: item.selectedOptions,
+      product: productMap.get(item.productId) || null,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      order: {
+        ...order,
+        items,
+        shippingAddress,
+        couponCode: coupon,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// update order delivery status
+export const updateOrderDeliveryStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = req.params.id;
+    const { deliveryStatus } = req.body;
+
+    console.log(id, deliveryStatus);
+    
+
+    if (!id || !deliveryStatus) {
+      return next(
+        new ValidationError('Order ID and delivery status are required')
+      );
+    }
+
+    if (!Object.values(DeliveryStatus).includes(deliveryStatus)) {
+      return next(new ValidationError('Invalid delivery status value'));
+    }
+
+    const existingOrder = await prisma.orders.findUnique({
+      where: { id },
+    });
+
+    if (!existingOrder) {
+      return next(new NotFoundError('Order not found with the given ID'));
+    }
+
+    console.log(id, deliveryStatus);
+    
+
+    const updatedOrder = await prisma.orders.update({
+      where: { id },
+      data: { deliveryStatus, updatedAt: new Date() },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Order delivery status updated successfully',
+      order: updatedOrder,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

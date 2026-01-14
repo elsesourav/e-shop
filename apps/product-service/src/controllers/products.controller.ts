@@ -1782,3 +1782,327 @@ export const incrementProductView = async (
     return next(error);
   }
 };
+
+//  ╔══════════════════════════════════════════════════════════════════════════════╗
+//  ║                          ● PRODUCT EVENTS ●                                  ║
+//  ╚══════════════════════════════════════════════════════════════════════════════╝
+
+// Create event (set startingDate and endingDate on existing product)
+export const createEvent = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { productId, startingDate, endingDate } = req.body;
+
+    if (!productId || !startingDate || !endingDate) {
+      throw new ValidationError(
+        'Product ID, starting date, and ending date are required'
+      );
+    }
+
+    if (!req.seller?.id) {
+      throw new AuthError('Seller authentication required');
+    }
+
+    // Get seller's shop
+    const seller = await prisma.sellers.findUnique({
+      where: { id: req.seller.id },
+      include: { shop: true },
+    });
+
+    if (!seller?.shop) {
+      throw new NotFoundError('Shop not found. Please create a shop first.');
+    }
+
+    // Find the product and verify ownership
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+      include: { shop: true },
+    });
+
+    if (!product) {
+      throw new NotFoundError('Product not found');
+    }
+
+    if (product.shop.sellerId !== req.seller.id) {
+      throw new AuthError('You do not have permission to update this product');
+    }
+
+    // Validate dates
+    const start = new Date(startingDate);
+    const end = new Date(endingDate);
+
+    if (start >= end) {
+      throw new ValidationError('Starting date must be before ending date');
+    }
+
+    // Update product with event dates
+    const updatedProduct = await prisma.products.update({
+      where: { id: productId },
+      data: {
+        startingDate: start,
+        endingDate: end,
+      },
+      include: { images: true },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Event created successfully',
+      product: updatedProduct,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Update event
+export const updateEvent = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { startingDate, endingDate } = req.body;
+
+    if (!startingDate || !endingDate) {
+      throw new ValidationError('Starting date and ending date are required');
+    }
+
+    if (!req.seller?.id) {
+      throw new AuthError('Seller authentication required');
+    }
+
+    // Find the product and verify ownership
+    const product = await prisma.products.findUnique({
+      where: { id },
+      include: { shop: true },
+    });
+
+    if (!product) {
+      throw new NotFoundError('Product not found');
+    }
+
+    if (product.shop.sellerId !== req.seller.id) {
+      throw new AuthError('You do not have permission to update this product');
+    }
+
+    // Validate dates
+    const start = new Date(startingDate);
+    const end = new Date(endingDate);
+
+    if (start >= end) {
+      throw new ValidationError('Starting date must be before ending date');
+    }
+
+    // Update product with event dates
+    const updatedProduct = await prisma.products.update({
+      where: { id },
+      data: {
+        startingDate: start,
+        endingDate: end,
+      },
+      include: { images: true },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Event updated successfully',
+      product: updatedProduct,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Remove event (clear startingDate and endingDate)
+export const removeEvent = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.seller?.id) {
+      throw new AuthError('Seller authentication required');
+    }
+
+    // Find the product and verify ownership
+    const product = await prisma.products.findUnique({
+      where: { id },
+      include: { shop: true },
+    });
+
+    if (!product) {
+      throw new NotFoundError('Product not found');
+    }
+
+    if (product.shop.sellerId !== req.seller.id) {
+      throw new AuthError('You do not have permission to update this product');
+    }
+
+    // Remove event dates
+    const updatedProduct = await prisma.products.update({
+      where: { id },
+      data: {
+        startingDate: null,
+        endingDate: null,
+      },
+      include: { images: true },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Event removed successfully',
+      product: updatedProduct,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get shop events (products with startingDate set)
+export const getShopEvents = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.seller?.id) {
+      throw new AuthError('Seller authentication required');
+    }
+
+    const {
+      page = '1',
+      limit = '20',
+      status = 'all', // 'all', 'active', 'upcoming', 'ended'
+    } = req.query;
+
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = Math.min(parseInt(limit as string, 10), 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build where clause
+    const where: any = {
+      shop: { sellerId: req.seller.id },
+      isDeleted: false,
+      NOT: {
+        startingDate: null,
+      },
+    };
+
+    const now = new Date();
+
+    if (status === 'active') {
+      where.startingDate = { lte: now };
+      where.endingDate = { gte: now };
+    } else if (status === 'upcoming') {
+      where.startingDate = { gt: now };
+    } else if (status === 'ended') {
+      where.endingDate = { lt: now };
+    }
+
+    const [events, totalCount] = await Promise.all([
+      prisma.products.findMany({
+        where,
+        skip,
+        take: limitNum,
+        include: {
+          images: true,
+          shop: {
+            select: { id: true, name: true },
+          },
+        },
+        orderBy: {
+          startingDate: 'desc',
+        },
+      }),
+      prisma.products.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(totalCount / limitNum);
+
+    return res.status(200).json({
+      success: true,
+      events,
+      pagination: {
+        currentPage: pageNum,
+        totalPages,
+        totalEvents: totalCount,
+        limit: limitNum,
+        hasNextPage: pageNum < totalPages,
+        hasPrevPage: pageNum > 1,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Get seller's products for event selection (products without events)
+export const getProductsForEvent = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.seller?.id) {
+      throw new AuthError('Seller authentication required');
+    }
+
+    const { search, includeWithEvents = 'false' } = req.query;
+
+    const where: any = {
+      shop: { sellerId: req.seller.id },
+      isDeleted: false,
+      status: 'ACTIVE',
+    };
+
+    // By default, only show products without events
+    if (includeWithEvents !== 'true') {
+      where.startingDate = null;
+    }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: 'insensitive' } },
+        { slug: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+
+    const products = await prisma.products.findMany({
+      where,
+      take: 50, // Limit to 50 products for performance
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        salePrice: true,
+        regularPrice: true,
+        stock: true,
+        startingDate: true,
+        endingDate: true,
+        images: {
+          take: 1,
+          select: {
+            url: true,
+          },
+        },
+      },
+      orderBy: {
+        title: 'asc',
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      products,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
